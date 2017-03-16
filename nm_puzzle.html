@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<title>Пятнашки N * M</title>
+<style>
+.divGame
+{
+  border: 1px solid black;
+  padding: 2px;
+  position: relative;
+}
+.divGame .cell
+{
+  border: 1px solid black;
+  background-color: #CCCCCC;
+  padding: 5px;
+  margin: 2px;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  font-size: 150%;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: default;
+  transition-duration: 0.5s;
+  position: absolute;
+}
+.divGame .mCell
+{
+  background-color: #CCFFCC;
+}
+</style>
+<script>
+function $(id) { return document.getElementById(id); }
+function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function generateGame()
+{
+  var sizex = $("sizex").value;
+  var sizey = $("sizey").value;
+  var rand = $("rand").checked;
+  generateGameDiv(sizex, sizey, rand);
+}
+function generateGameDiv(sizex, sizey, rand)
+{
+  var gameZone = $("divGame");
+  gameZone.innerHTML = "";
+  var cnt = 1, maxcnt = sizex * sizey, total = sizex * sizey - 1;
+  var info =
+  {
+    step: 0,
+	sizex: 1 * sizex,
+	sizey: 1 * sizey,
+	total: total,
+	matched: total
+  };
+  gameZone.style.width = (1 + 55 * sizex) + "px";
+  gameZone.style.height = (1 + 55 * sizey) + "px";
+  for (var y = 1; y <= sizey; y++)
+  {
+	for (var x = 1; x <= sizex; x++)
+	{
+	  if (cnt == maxcnt)
+	  {
+		info.emptyx = x;
+		info.emptyy = y;
+	  }
+	  else
+	  {
+	    var cell = document.createElement('div');
+	    cell.id = "cell" + cnt;
+		cell.className = "cell";
+		cell.innerHTML = "" + cnt;
+	    cell.data = { x: x, y: y, mx: x, my: y, info: info };
+		setCellCoords(cell);
+	    gameZone.appendChild(cell);
+	  }
+	  cnt++;
+	}
+  }
+  if (rand)
+	mix();
+  else
+  {
+    info.matched = total;
+    updateInfo(info);
+  }
+}
+function setCellCoords(cell)
+{
+  var data = cell.data;
+  cell.style.top = (2 + 55 * (data.y - 1)) + "px";
+  cell.style.left = (2 + 55 * (data.x - 1)) + "px";
+  if ((data.mx == data.x) && ((data.my == data.y)))
+  {
+    if (!cell.classList.contains("mCell"))
+	{
+	  cell.classList.add("mCell");
+	  data.info.matched++;
+	}
+  }
+  else
+  {
+    if (cell.classList.contains("mCell"))
+	{
+	  cell.classList.remove("mCell");
+	  data.info.matched--;
+	}
+  }
+}
+function onDivClick(event)
+{
+  var cellid = event.target.id;
+  if (!cellid)
+    return;
+  var cell = $(cellid);
+  if (!cell)
+    return;
+  var data = cell.data;
+  if (!data)
+    return;
+  if ((data.x == data.info.emptyx - 1) && (data.y == data.info.emptyy))
+  {
+    data.info.emptyx = data.x;
+	data.x += 1;
+	setCellCoords(cell);
+  }
+  else if ((data.x == data.info.emptyx + 1) && (data.y == data.info.emptyy))
+  {
+    data.info.emptyx = data.x;
+	data.x -= 1;
+	setCellCoords(cell);
+  }
+  else if ((data.y == data.info.emptyy - 1) && (data.x == data.info.emptyx))
+  {
+    data.info.emptyy = data.y;
+	data.y += 1;
+	setCellCoords(cell);
+  }
+  else if ((data.y == data.info.emptyy + 1) && (data.x == data.info.emptyx))
+  {
+    data.info.emptyy = data.y;
+	data.y -= 1;
+	setCellCoords(cell);
+  }
+  
+  data.info.step++;
+  updateInfo(data.info);
+}
+function mix()
+{
+  var info = $("cell1").data.info;
+  var cellArr = new Array();
+  for (var i = 1; i <= info.sizex; i++)
+    cellArr[i] = new Array();
+  cellArr[info.emptyx][info.emptyy] = null;
+  for (var i = 1; i < info.sizex * info.sizey; i++)
+  {
+    var cell = $("cell" + i);
+    var data = cell.data;
+	cellArr[data.x][data.y] = cell;
+  }
+  // перемешивание
+  var newX = info.emptyx, newY = info.emptyy;
+  for (var i = 0; i < info.total * 100; i++)
+  {
+    var dir = getRandomInt(0, 1); // направление: 0 - по горизонтали, 1 - по вертикали
+    if (dir == 0)
+    {
+	  if (info.emptyx == 1)
+	    newX = info.emptyx + 1;
+      else if (info.emptyx == info.sizex)
+	    newX = info.emptyx - 1;
+	  else
+	    newX = (getRandomInt(0, 1) == 0) ? (info.emptyx - 1) : (info.emptyx + 1);
+    }
+    else
+    {
+	  if (info.emptyy == 1)
+	    newY = info.emptyy + 1;
+	  else if (info.emptyy == info.sizey)
+	    newY = info.emptyy - 1;
+	  else
+	    newY = (getRandomInt(0, 1) == 0) ? (info.emptyy - 1) : (info.emptyy + 1);
+    }
+    cellArr[info.emptyx][info.emptyy] = cellArr[newX][newY];
+    cellArr[newX][newY] = null;
+    info.emptyx = newX;
+    info.emptyy = newY;
+  }
+  // расстановка новых координат
+  var matched = 0;
+  for (var x = 1; x <= info.sizex; x++)
+    for (var y = 1; y <= info.sizey; y++)
+	  if (cellArr[x][y])
+	  {
+	    var cell = cellArr[x][y];
+	    var data = cell.data;
+	    data.x = x;
+	    data.y = y;
+	    setCellCoords(cell);
+		if (cell.classList.contains("mCell"))
+		  matched++;
+	  }
+  // сброс статистики
+  info.step = 0;
+  info.matched = matched;
+  updateInfo(info);
+}
+function updateInfo(info)
+{
+  var infoElem = $("info");
+  infoElem.innerHTML = "Ход: " + info.step + "; Совпадений: " + info.matched + " / " + info.total + " (" + Math.round(info.matched * 100 / info.total) + "%)";
+}
+window.onload = generateGame;
+</script>
+<head>
+<body>
+<h1>Пятнашки N * M</h1>
+<span>Размер:</span>
+<select id="sizex"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
+<span> * </span>
+<select id="sizey"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
+<input type="checkbox" id="rand" checked><label for="rand">Случайный порядок</label>
+<button onclick="generateGame()"">Сгенерировать</button><br/><br/>
+<div id="divGame" class="divGame" onclick="onDivClick(event)">
+</div><br/>
+<span id="info" style="color:green;font-weight:bold;">0</span><br/>
+<button onclick="mix()"">Перемешать</button><br/>
+</body>
+</html>
