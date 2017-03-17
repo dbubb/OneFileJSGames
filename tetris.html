@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<title>Tetris</title>
+<style>
+.game
+{
+  border: 1px solid black;
+  padding: 10px;
+  width: 800px;
+  height: 600px;
+  position: relative;
+}
+.gameZone
+{
+  border-left: 5px solid brown;
+  border-right: 5px solid brown;
+  border-bottom: 5px solid brown;
+  padding: 5px;
+  width: 300px;
+  height: 587px;
+  left: 300px;
+  top: 10px;
+  position: absolute;
+}
+.gameStat
+{
+  padding: 5px;
+  width: 250px;
+  left: 5px;
+  top: 5px;
+  position: absolute;
+}
+.gameNext
+{
+  padding: 5px;
+  width: 150px;
+  left: 630px;
+  top: 5px;
+  position: absolute;
+}
+.gameStat h1
+{
+  width: 100%;
+  text-align: center;
+  color: #0000AA;
+  font-size: 300%;
+  font-family: sans-serif;
+}
+.gameText
+{
+  width: 100%;
+  text-align: center;
+  font-size: 150%;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+.gameInfo
+{
+  width: 100%;
+  text-align: center;
+  color: #0000AA;
+  font-size: 200%;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+.nextBlock
+{
+  border: 2px solid brown;
+  padding: 5px;
+  width: 130px;
+  height: 130px;
+  left: 20px;
+  top: 100px;
+  position: absolute;
+}
+.item
+{
+  border: 1px solid black;
+  margin: 0px;
+  width: 29px;
+  height: 29px;
+  position: absolute;
+  //transition-duration: 0.3s;
+}
+.popup
+{
+  border: 3px solid black;
+  background-color: #FFFFFF;
+  margin: 0px;
+  width: 400px;
+  height: 300px;
+  left: 250px;
+  top: 150px;
+  z-index: 10;
+  position: absolute;
+}
+.popupText
+{
+  margin-top: 50px;
+  margin-bottom: 50px;
+  width: 100%;
+  text-align: center;
+  font-size: 50px;
+}
+.popupButton
+{
+  margin-left: 50px;
+  width: 300px;
+  height: 100px;
+  text-align: center;
+  font-size: 40px;
+}
+.item0
+{
+  background-color: #0000FF;
+}
+.item1
+{
+  background-color: #00FF00;
+}
+.item2
+{
+  background-color: #FFFF00;
+}
+.item3
+{
+  background-color: #00FFFF;
+}
+.item4
+{
+  background-color: #FF0000;
+}
+.item5
+{
+  background-color: #FF00FF;
+}
+.item6
+{
+  background-color: #FF7700;
+}
+.blinked
+{
+  animation: blink 0.2s linear infinite;
+}
+@keyframes blink
+{
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+</style>
+<script>
+function $(id) { return document.getElementById(id); }
+function div(val, by) { return (val - val % by) / by; }
+
+function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function generateNext()
+{
+  var n = getRandomInt(0, game.figures.length - 1);
+  var rl = game.figures[n].rotations.length;
+  var r = (rl > 1) ? getRandomInt(0, rl - 1) : 0;
+  var nextBlock = $("nextBlock");
+  game.next =
+  {
+    figureInfo : game.figures[n],
+	rotation : r,
+	elements : [ null, null, null, null ]
+  }
+  for (var i = 0; i < 4; i++)
+  {
+    var fi = game.next.figureInfo.rotations[game.next.rotation];
+    var coords = fi.coords[i];
+    var cell = document.createElement('div');
+    cell.className = "item item" + n;
+    cell.style.top = (10 + 15 * (4 - fi.height) + 30 * coords[1]) + "px";
+    cell.style.left = (10 + 15 * (4 - fi.width) + 30 * coords[0]) + "px";
+	nextBlock.appendChild(cell);
+	game.next.elements[i] = cell;
+  }
+}
+function updateStat()
+{
+  if (game.score > game.hscore)
+    game.hscore = game.score;
+  game.level = div(game.lines, 10) + 1;
+  game.interval = (game.level > 10) ? 50 : (1000 - (game.level - 1) * 100);
+  
+  updateStatItem("lines", game.lines)
+  updateStatItem("level", game.level)
+  updateStatItem("score", game.score)
+  updateStatItem("hscore", game.hscore)
+}
+function updateStatItem(itemId, value)
+{
+  $(itemId).innerHTML = "" + value;
+}
+function gameStep()
+{
+  switch(game.state)
+  {
+    case "next" :
+	  var full = false;
+      var fi = game.next.figureInfo.rotations[game.next.rotation];
+      for (var i = 0; i < 4; i++)
+	    if (game.gameZone[4 + fi.coords[i][0]][fi.coords[i][1]] != null) // клетка под фигуру занята
+        {
+		  full = true;
+		  break;
+	    }
+      if (full)
+	  {
+	    game.state = "gameover";
+		game.stepCallback = null;
+		setTimeout(gameStep, 1);
+		break;
+	  }
+	  
+	  var gameZone = $("gameZone");
+      game.current = game.next;
+	  game.current.shift = [4, 0];
+      for (var i = 0; i < 4; i++)
+      {
+	    var cell = game.current.elements[i];
+		var coords = game.current.figureInfo.rotations[game.current.rotation].coords[i];
+        cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	    cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	    gameZone.appendChild(cell);
+	  }
+	  game.state = "step";
+	  generateNext();
+	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+	  break;
+	
+    case "step" :
+	  var fi = game.current.figureInfo.rotations[game.current.rotation];
+	  var end = false;
+      for (var i = 0; i < 4; i++)
+	  {
+        var coords = fi.coords[i];
+		if (game.current.shift[1] + fi.height >= 19)
+	    {
+		  end = true;
+		  break;
+	    }
+	    if (game.gameZone[coords[0] + game.current.shift[0]][coords[1] + game.current.shift[1] + 1] != null) // клетка под фигуру занята
+	    {
+		  end = true;
+		  break;
+	    }
+	  }
+      if (end)
+	  {
+	    game.state = "stepEnd";
+		game.stepCallback = null;
+		setTimeout(gameStep, 1);
+		break;
+	  }
+	  game.current.shift[1] += 1;
+      for (var i = 0; i < 4; i++)
+      {
+	    var cell = game.current.elements[i];
+		var coords = fi.coords[i];
+        cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	    cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	  }
+	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+	  break;
+	
+    case "stepEnd" :
+	  game.score += 1;
+	  var fi = game.current.figureInfo.rotations[game.current.rotation];
+      for (var i = 0; i < 4; i++)
+	  {
+	    var coords = fi.coords[i];
+		game.gameZone[coords[0] + game.current.shift[0]][coords[1] + game.current.shift[1]] = game.current.elements[i];
+	  }
+	  var maxLine = game.current.shift[1] + fi.height;
+	  game.removeLines = [];
+	  var removeLinesCount = 0;
+	  var hasFullLines = false;
+      for (var i = maxLine - 1; i >= 0; i--)
+	  {
+        var fullLine = true;
+        for (var j = 0; j < 10; j++)
+		  if (game.gameZone[j][i] == null)
+		  {
+		    fullLine = false;
+			break;
+		  }
+		game.removeLines[i] = fullLine;
+		if (fullLine)
+		{
+		  hasFullLines = true;
+		  removeLinesCount++;
+		  for (var j = 0; j < 10; j++)
+		    game.gameZone[j][i].classList.add("blinked");
+		}
+	  }
+	  if (removeLinesCount > 0)
+	  {
+	    game.lines += removeLinesCount;
+		if (removeLinesCount == 1)
+		  game.score += 10;
+		else if (removeLinesCount == 2)
+		  game.score += 30;
+		else if (removeLinesCount == 3)
+		  game.score += 60;
+		else
+		  game.score += 100;
+	  }
+	  updateStat();
+	  game.stepCallback = null;
+	  if (hasFullLines)
+	    setTimeout(removeLines, 600);
+      else
+	  {
+		game.state = "next";
+		setTimeout(gameStep, 1);
+	  }
+	  break;
+	
+    case "gameover" :
+	  saveHScore();
+	  showPopup("Игра окончена", "Новая игра");
+	  break;
+	
+	default:
+	  alert('Error: unknown state : ' + game.state);  // TODO
+	  break;
+  }
+}
+function removeLines()
+{
+  var maxIndex = game.removeLines.length - 1;
+  var newLines = [];
+  var index = maxIndex;
+  var gameZone = $("gameZone");
+  for (var i = maxIndex; i >= 0; i--)
+  {
+	if (game.removeLines[i])
+	{
+	  for (var j = 0; j < 10; j++)
+		gameZone.removeChild(game.gameZone[j][i])
+	}
+	else
+	  newLines[index--] = i;
+  }
+  for (var i = maxIndex; i >= 0; i--)
+  {
+	if (i <= index)
+	{
+	  for (var j = 0; j < 10; j++)
+		game.gameZone[j][i] = null;
+	}
+	else if (newLines[i] != i)
+	{
+	  for (var j = 0; j < 10; j++)
+	  {
+		game.gameZone[j][i] = game.gameZone[j][newLines[i]];
+		if (game.gameZone[j][i] != null)
+		  game.gameZone[j][i].style.top = (20 + 30 * i) + "px";
+	  }
+	}
+  }
+  game.state = "next";
+  setTimeout(gameStep, 1);
+}
+function processKeyDown(event)
+{
+  if (game.state != "step")
+    return;
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
+  events = event || window.event;
+  if (events.keyCode == 37)
+  {
+    if (game.current.shift[0] == 0)
+	  return;
+    for (var i = 0; i < 4; i++)
+	{
+      var coords = fi.coords[i];
+	  if (game.gameZone[coords[0] + game.current.shift[0] - 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
+	    return;
+	}
+	game.current.shift[0] -= 1;
+    for (var i = 0; i < 4; i++)
+    {
+      var cell = game.current.elements[i];
+	  var coords = fi.coords[i];
+      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	}
+  }
+  else if (events.keyCode == 39)
+  {
+    if (game.current.shift[0] + fi.width >= 10)
+	  return;
+    for (var i = 0; i < 4; i++)
+	{
+      var coords = fi.coords[i];
+	  if (game.gameZone[coords[0] + game.current.shift[0] + 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
+	    return;
+	}
+	game.current.shift[0] += 1;
+    for (var i = 0; i < 4; i++)
+    {
+      var cell = game.current.elements[i];
+	  var coords = fi.coords[i];
+      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	}
+  }
+  else if (events.keyCode == 38)
+  {
+    if (fi.checks.length == 0)
+	  return;
+	for (var i = 0; i < 4; i++)
+    {
+	  var checks = fi.checks[i];
+	  var x = game.current.shift[0] + checks[0];
+	  if ((x < 0) || (x >= 10))
+	    return;
+	  var y = game.current.shift[1] + checks[1];
+	  if ((y < 0) || (y >= 19))
+	    return;
+	  if (game.gameZone[x][y] != null) // клетка под фигуру занята
+	    return;
+	}
+	game.current.rotation += 1;
+	if (game.current.rotation >= game.current.figureInfo.rotations.length)
+	  game.current.rotation = 0;
+	game.current.shift[0] += fi.shift[0];
+	game.current.shift[1] += fi.shift[1];
+	fi = game.current.figureInfo.rotations[game.current.rotation];
+    for (var i = 0; i < 4; i++)
+    {
+      var cell = game.current.elements[i];
+	  var coords = fi.coords[i];
+      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	}
+  }
+  else if (events.keyCode == 40)
+  {
+    game.fast = true;
+	if (game.stepCallback != null)
+	{
+	  clearTimeout(game.stepCallback);
+	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+	}
+  }
+  else if (events.keyCode == 80) // P - pause
+  {
+	if (game.stepCallback != null)
+	  clearTimeout(game.stepCallback);
+    game.stateAfterPause = game.state;
+    game.state = "paused";
+	showPopup("Пауза", "Продолжить");
+  }
+  else if (events.keyCode == 32) // Пробел - опустить фигуру до низа
+  {
+    // TODO
+	clearTimeout(game.stepCallback);
+	game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+  }
+}
+function processKeyUp(event)
+{
+  events = event || window.event;
+  if (events.keyCode == 40)
+  {
+    game.fast = false;
+  }
+}
+function saveHScore()
+{
+  if (localStorage)
+    localStorage["tetris.hscore"] = game.hscore;
+}
+function getHScore()
+{
+  if (localStorage)
+  {
+    var hscore = localStorage["tetris.hscore"];
+	if (hscore)
+	  return parseInt(hscore);
+    else
+      return 0;
+  }
+  else
+    return 0;
+}
+function showPopup(mainText, buttonText)
+{
+  $("popupText").innerHTML = mainText;
+  $("popupButton").innerHTML = buttonText;
+  $("popup").style.display = "";
+}
+function hidePopup()
+{
+  $("popup").style.display = "none";
+}
+function popupButtonClick()
+{
+  if (game.state == "gameover")
+  {
+    clearGameZone();
+    initGame();
+  }
+  hidePopup();
+  game.state = game.stateAfterPause;
+  gameStep();
+}
+function clearGameZone()
+{
+  var gameZone = $("gameZone");
+  for (var i = 0; i < 19; i++)
+    for (var j = 0; j < 10; j++)
+	  if (game.gameZone[j][i] != null)
+	    gameZone.removeChild(game.gameZone[j][i]);
+  var nextBlock = $("nextBlock");
+  for (var i = 0; i < 4; i++)
+	nextBlock.removeChild(game.next.elements[i]);
+}
+function initGame()
+{
+  game =
+  {
+    figures :
+	[
+	  // Палка
+	  {
+	    type : 'line',
+		rotations :
+		[
+		  {
+		    width : 1,
+		    height : 4,
+	        coords : [ [0,0],[0,1],[0,2],[0,3] ],
+			checks : [ [-1,1],[0,1],[1,1],[2,1] ],
+			shift : [-1,1]
+		  },
+		  {
+		    width : 4,
+		    height : 1,
+	        coords : [ [0,0],[1,0],[2,0],[3,0] ],
+			checks : [ [1,-1],[1,0],[1,1],[1,2] ],
+			shift : [1,-1]
+		  }
+		]
+	  },
+	  // Г-образная обратная
+	  {
+	    type : 'g1',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [0,0],[0,1],[0,2],[1,2] ],
+			checks : [ [-1,2],[0,2],[1,2],[1,1] ],
+			shift : [-1,1]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [0,1],[1,1],[2,1],[2,0] ],
+			checks : [ [2,2],[2,1],[2,0],[1,0] ],
+			shift : [1,0]
+		  },
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [1,2],[1,1],[1,0],[0,0] ],
+			checks : [ [2,0],[1,0],[0,0],[0,1] ],
+			shift : [0,0]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [2,0],[1,0],[0,0],[0,1] ],
+			checks : [ [0,-1],[0,0],[0,1],[1,1] ],
+			shift : [0,-1]
+		  }
+		]
+	  },
+	  // Г-образная
+	  {
+	    type : 'g2',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [1,0],[1,1],[1,2],[0,2] ],
+			checks : [ [-1,1],[0,1],[1,1],[1,2] ],
+			shift : [-1,1]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [0,0],[1,0],[2,0],[2,1] ],
+			checks : [ [1,2],[1,1],[1,0],[2,0] ],
+			shift : [1,0]
+		  },
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [0,2],[0,1],[0,0],[1,0] ],
+			checks : [ [2,1],[1,1],[0,1],[0,0] ],
+			shift : [0,0]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [2,1],[1,1],[0,1],[0,0] ],
+			checks : [ [1,-1],[1,0],[1,1],[0,1] ],
+			shift : [0,-1]
+		  }
+		]
+	  },
+	  // Т-образная
+	  {
+	    type : 't',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [0,0],[0,1],[0,2],[1,1] ],
+			checks : [ [-1,1],[0,1],[1,1],[0,0] ],
+			shift : [-1,0]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [0,1],[1,1],[2,1],[1,0] ],
+			checks : [ [1,2],[1,1],[1,0],[0,1] ],
+			shift : [0,0]
+		  },
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [1,2],[1,1],[1,0],[0,1] ],
+			checks : [ [0,1],[1,1],[2,1],[1,2] ],
+			shift : [0,1]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [2,0],[1,0],[0,0],[1,1] ],
+			checks : [ [1,-1],[1,0],[1,1],[2,0] ],
+			shift : [1,-1]
+		  }
+		]
+	  },
+	  // Квадрат
+	  {
+	    type : 'square',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 2,
+	        coords : [ [0,0],[0,1],[1,0],[1,1] ],
+			checks : [],
+			shift : [0,0]
+		  }
+		]
+	  },
+	  // S-образная 1
+	  {
+	    type : 's1',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [0,0],[0,1],[1,1],[1,2] ],
+			checks : [ [0,2],[1,2],[1,1],[2,1] ],
+			shift : [0,1]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [0,1],[1,1],[1,0],[2,0] ],
+			checks : [ [0,-1],[0,0],[1,0],[1,1] ],
+			shift : [0,-1]
+		  }
+		]
+	  },
+	  // S-образная 2
+	  {
+	    type : 's2',
+		rotations :
+		[
+		  {
+		    width : 2,
+		    height : 3,
+	        coords : [ [1,0],[1,1],[0,1],[0,2] ],
+			checks : [ [-1,1],[0,1],[0,2],[1,2] ],
+			shift : [-1,1]
+		  },
+		  {
+		    width : 3,
+		    height : 2,
+	        coords : [ [0,0],[1,0],[1,1],[2,1] ],
+			checks : [ [2,-1],[2,0],[1,0],[1,1] ],
+			shift : [1,-1]
+		  }
+		]
+	  }
+	],
+	lines : 0,
+	level : 1,
+	score : 0,
+	hscore : getHScore(),
+	next : null,
+	current : null,
+	stepCallback : null,
+	gameZone :
+	[
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]
+	],
+	interval : 300,//1000,
+	fastInterval : 30,
+	fast : false,
+	state : 'paused'
+  };
+  document.onkeydown = processKeyDown;
+  document.onkeyup = processKeyUp;
+  generateNext();
+  updateStat();
+  //gameStep();
+  game.stateAfterPause = "next";
+  showPopup("TETRIS", "Начать игру");
+}
+window.onload = initGame;
+</script>
+<head>
+<body>
+
+<div id="game" class="game">
+  <div id="gameStat" class="gameStat">
+    <h1>TETRIS</h1>
+	<div class="gameText">ЛИНИИ</div>
+	<div id="lines" class="gameInfo">0</div><br/>
+	<div class="gameText">УРОВЕНЬ</div>
+	<div id="level" class="gameInfo">0</div><br/>
+	<div class="gameText">ОЧКИ</div>
+	<div id="score" class="gameInfo">0</div><br/>
+	<div class="gameText">РЕКОРД</div>
+	<div id="hscore" class="gameInfo">0</div>
+  </div>
+  <div id="gameZone" class="gameZone"></div>
+  <div id="gameNext" class="gameNext">
+	<br/>
+	<div class="gameText">СЛЕДУЮЩАЯ ФИГУРА</div>
+	<div id="nextBlock" class="nextBlock"></div>
+  </div>
+</div>
+<div id="popup" class="popup" style="display:none;">
+  <div id="popupText" class="popupText">TETRIS</div>
+  <button id="popupButton" class="popupButton" onclick="popupButtonClick();">Начать Игру</button>
+</div>
+</body>
+</html>
