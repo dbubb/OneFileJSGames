@@ -140,6 +140,15 @@
 {
   background-color: #FF7700;
 }
+.marker
+{
+  border: 1px solid gray;
+  margin: 0px;
+  width: 29px;
+  height: 29px;
+  position: absolute;
+  z-index: -1;
+}
 .blinked
 {
   animation: blink 0.2s linear infinite;
@@ -179,6 +188,18 @@ function generateNext()
 	nextBlock.appendChild(cell);
 	game.next.elements[i] = cell;
   }
+}
+function generateMarkers()
+{
+  var gameZone = $("gameZone");
+  for (var i = 0; i < 4; i++)
+  {
+    var marker = document.createElement('div');
+    marker.className = "marker";
+	gameZone.appendChild(marker);
+	game.markers[i] = marker;
+  }
+  // TODO скрыть
 }
 function updateStat()
 {
@@ -228,6 +249,7 @@ function gameStep()
 	    cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
 	    gameZone.appendChild(cell);
 	  }
+	  // TODO выставить маркеры
 	  game.state = "step";
 	  generateNext();
 	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
@@ -718,6 +740,7 @@ function initGame()
 	hscore : getHScore(),
 	next : null,
 	current : null,
+	markers : [ null, null, null, null ],
 	stepCallback : null,
 	gameZone :
 	[
@@ -739,9 +762,10 @@ function initGame()
   };
   document.onkeydown = processKeyDown;
   document.onkeyup = processKeyUp;
+  generateMarkers();
   generateNext();
   updateStat();
-  //gameStep();
+  //gameStep(); игра запускается по нажатию кнопки, а не автоматом
   game.stateAfterPause = "next";
   showPopup("TETRIS", "Начать игру");
 }
