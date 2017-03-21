@@ -196,10 +196,10 @@ function generateMarkers()
   {
     var marker = document.createElement('div');
     marker.className = "marker";
+	marker.style.display = "none";
 	gameZone.appendChild(marker);
 	game.markers[i] = marker;
   }
-  // TODO скрыть
 }
 function updateStat()
 {
