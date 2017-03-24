@@ -140,6 +140,15 @@
 {
   background-color: #FF7700;
 }
+.marker
+{
+  border: 1px solid gray;
+  margin: 0px;
+  width: 29px;
+  height: 29px;
+  position: absolute;
+  z-index: -1;
+}
 .blinked
 {
   animation: blink 0.2s linear infinite;
@@ -178,6 +187,53 @@ function generateNext()
     cell.style.left = (10 + 15 * (4 - fi.width) + 30 * coords[0]) + "px";
 	nextBlock.appendChild(cell);
 	game.next.elements[i] = cell;
+  }
+}
+function generateMarkers()
+{
+  var gameZone = $("gameZone");
+  for (var i = 0; i < 4; i++)
+  {
+    var marker = document.createElement('div');
+    marker.className = "marker";
+	marker.style.display = "none";
+	gameZone.appendChild(marker);
+	game.markers[i] = marker;
+  }
+}
+function setMarkers()
+{
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
+  var diff = 100;
+  for (var i = 0; i < 4; i++)
+  {
+    var coords = fi.coords[i];
+	var x = coords[0] + game.current.shift[0];
+	var y = coords[1] + game.current.shift[1];
+	var coldiff = 100;
+	for (var j = 1; ; j++)
+	{
+	  if ((y + j)  >= 19)
+	  {
+	    coldiff = j - 1;
+		break;
+	  }
+	  if (game.gameZone[x][y + j] != null) // клетка под фигуру занята
+	  {
+	    coldiff = j - 1;
+		break;
+	  }
+    }
+	if (coldiff < diff)
+	  diff = coldiff;
+  }
+  for (var i = 0; i < 4; i++)
+  {
+    var marker = game.markers[i];
+	var coords = fi.coords[i];
+    marker.style.top = (20 + 30 * (coords[1] + game.current.shift[1] + diff)) + "px";
+	marker.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+	marker.style.display = "";
   }
 }
 function updateStat()
@@ -228,6 +284,7 @@ function gameStep()
 	    cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
 	    gameZone.appendChild(cell);
 	  }
+	  setMarkers();
 	  game.state = "step";
 	  generateNext();
 	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
@@ -391,6 +448,7 @@ function processKeyDown(event)
       cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
 	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
 	}
+    setMarkers();
   }
   else if (events.keyCode == 39)
   {
@@ -410,6 +468,7 @@ function processKeyDown(event)
       cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
 	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
 	}
+    setMarkers();
   }
   else if (events.keyCode == 38)
   {
@@ -440,6 +499,7 @@ function processKeyDown(event)
       cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
 	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
 	}
+    setMarkers();
   }
   else if (events.keyCode == 40)
   {
@@ -521,7 +581,11 @@ function clearGameZone()
 	    gameZone.removeChild(game.gameZone[j][i]);
   var nextBlock = $("nextBlock");
   for (var i = 0; i < 4; i++)
+  {
 	nextBlock.removeChild(game.next.elements[i]);
+	if (game.markers[i] != null)
+	  gameZone.removeChild(game.markers[i]);
+  }
 }
 function initGame()
 {
@@ -718,6 +782,7 @@ function initGame()
 	hscore : getHScore(),
 	next : null,
 	current : null,
+	markers : [ null, null, null, null ],
 	stepCallback : null,
 	gameZone :
 	[
@@ -739,9 +804,10 @@ function initGame()
   };
   document.onkeydown = processKeyDown;
   document.onkeyup = processKeyUp;
+  generateMarkers();
   generateNext();
   updateStat();
-  //gameStep();
+  //gameStep(); игра запускается по нажатию кнопки, а не автоматом
   game.stateAfterPause = "next";
   showPopup("TETRIS", "Начать игру");
 }
