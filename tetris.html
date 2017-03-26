@@ -260,7 +260,7 @@ function gameStep()
 	  var full = false;
       var fi = game.next.figureInfo.rotations[game.next.rotation];
       for (var i = 0; i < 4; i++)
-	    if (game.gameZone[4 + fi.coords[i][0]][fi.coords[i][1]] != null) // клетка под фигуру занята
+	    if (game.gameZone[fi.initShift[0] + fi.coords[i][0]][fi.initShift[1] + fi.coords[i][1]] != null) // клетка под фигуру занята
         {
 		  full = true;
 		  break;
@@ -275,7 +275,9 @@ function gameStep()
 	  
 	  var gameZone = $("gameZone");
       game.current = game.next;
-	  game.current.shift = [4, 0];
+	  game.current.shift = [];
+	  game.current.shift[0] = fi.initShift[0];
+	  game.current.shift[1] = fi.initShift[1];
       for (var i = 0; i < 4; i++)
       {
 	    var cell = game.current.elements[i];
@@ -430,7 +432,7 @@ function processKeyDown(event)
     return;
   var fi = game.current.figureInfo.rotations[game.current.rotation];
   events = event || window.event;
-  if (events.keyCode == 37)
+  if (events.keyCode == 37) // влево
   {
     if (game.current.shift[0] == 0)
 	  return;
@@ -450,7 +452,7 @@ function processKeyDown(event)
 	}
     setMarkers();
   }
-  else if (events.keyCode == 39)
+  else if (events.keyCode == 39) // вправо
   {
     if (game.current.shift[0] + fi.width >= 10)
 	  return;
@@ -470,7 +472,7 @@ function processKeyDown(event)
 	}
     setMarkers();
   }
-  else if (events.keyCode == 38)
+  else if (events.keyCode == 38) // вверх (вращение)
   {
     if (fi.checks.length == 0)
 	  return;
@@ -501,7 +503,7 @@ function processKeyDown(event)
 	}
     setMarkers();
   }
-  else if (events.keyCode == 40)
+  else if (events.keyCode == 40) // вниз (ускорение падения)
   {
     game.fast = true;
 	if (game.stepCallback != null)
@@ -510,7 +512,7 @@ function processKeyDown(event)
 	  game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
 	}
   }
-  else if (events.keyCode == 80) // P - pause
+  else if (events.keyCode == 80) // P - пауза
   {
 	if (game.stepCallback != null)
 	  clearTimeout(game.stepCallback);
@@ -528,7 +530,7 @@ function processKeyDown(event)
 function processKeyUp(event)
 {
   events = event || window.event;
-  if (events.keyCode == 40)
+  if (events.keyCode == 40) // вниз (убираем ускорение падения)
   {
     game.fast = false;
   }
@@ -603,14 +605,16 @@ function initGame()
 		    height : 4,
 	        coords : [ [0,0],[0,1],[0,2],[0,3] ],
 			checks : [ [-1,1],[0,1],[1,1],[2,1] ],
-			shift : [-1,1]
+			shift : [-1,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 4,
 		    height : 1,
 	        coords : [ [0,0],[1,0],[2,0],[3,0] ],
 			checks : [ [1,-1],[1,0],[1,1],[1,2] ],
-			shift : [1,-1]
+			shift : [1,-1],
+			initShift : [3, 1]
 		  }
 		]
 	  },
@@ -623,29 +627,33 @@ function initGame()
 		    width : 2,
 		    height : 3,
 	        coords : [ [0,0],[0,1],[0,2],[1,2] ],
-			checks : [ [-1,2],[0,2],[1,2],[1,1] ],
-			shift : [-1,1]
+			checks : [ [-1,1],[0,1],[1,1],[1,0] ],
+			shift : [-1,0],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [0,1],[1,1],[2,1],[2,0] ],
 			checks : [ [2,2],[2,1],[2,0],[1,0] ],
-			shift : [1,0]
+			shift : [1,0],
+			initShift : [3, 1]
 		  },
 		  {
 		    width : 2,
 		    height : 3,
 	        coords : [ [1,2],[1,1],[1,0],[0,0] ],
-			checks : [ [2,0],[1,0],[0,0],[0,1] ],
-			shift : [0,0]
+			checks : [ [2,1],[1,1],[0,1],[0,2] ],
+			shift : [0,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [2,0],[1,0],[0,0],[0,1] ],
 			checks : [ [0,-1],[0,0],[0,1],[1,1] ],
-			shift : [0,-1]
+			shift : [0,-1],
+			initShift : [4, 1]
 		  }
 		]
 	  },
@@ -659,28 +667,32 @@ function initGame()
 		    height : 3,
 	        coords : [ [1,0],[1,1],[1,2],[0,2] ],
 			checks : [ [-1,1],[0,1],[1,1],[1,2] ],
-			shift : [-1,1]
+			shift : [-1,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [0,0],[1,0],[2,0],[2,1] ],
-			checks : [ [1,2],[1,1],[1,0],[2,0] ],
-			shift : [1,0]
+			checks : [ [1,1],[1,0],[1,-1],[2,-1] ],
+			shift : [1,-1],
+			initShift : [3, 1]
 		  },
 		  {
 		    width : 2,
 		    height : 3,
 	        coords : [ [0,2],[0,1],[0,0],[1,0] ],
 			checks : [ [2,1],[1,1],[0,1],[0,0] ],
-			shift : [0,0]
+			shift : [0,0],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [2,1],[1,1],[0,1],[0,0] ],
-			checks : [ [1,-1],[1,0],[1,1],[0,1] ],
-			shift : [0,-1]
+			checks : [ [1,0],[1,1],[1,2],[0,2] ],
+			shift : [0,0],
+			initShift : [4, 1]
 		  }
 		]
 	  },
@@ -694,28 +706,32 @@ function initGame()
 		    height : 3,
 	        coords : [ [0,0],[0,1],[0,2],[1,1] ],
 			checks : [ [-1,1],[0,1],[1,1],[0,0] ],
-			shift : [-1,0]
+			shift : [-1,0],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [0,1],[1,1],[2,1],[1,0] ],
 			checks : [ [1,2],[1,1],[1,0],[0,1] ],
-			shift : [0,0]
+			shift : [0,0],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 2,
 		    height : 3,
 	        coords : [ [1,2],[1,1],[1,0],[0,1] ],
 			checks : [ [0,1],[1,1],[2,1],[1,2] ],
-			shift : [0,1]
+			shift : [0,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [2,0],[1,0],[0,0],[1,1] ],
 			checks : [ [1,-1],[1,0],[1,1],[2,0] ],
-			shift : [1,-1]
+			shift : [1,-1],
+			initShift : [4, 1]
 		  }
 		]
 	  },
@@ -729,7 +745,8 @@ function initGame()
 		    height : 2,
 	        coords : [ [0,0],[0,1],[1,0],[1,1] ],
 			checks : [],
-			shift : [0,0]
+			shift : [0,0],
+			initShift : [4, 0]
 		  }
 		]
 	  },
@@ -743,14 +760,16 @@ function initGame()
 		    height : 3,
 	        coords : [ [0,0],[0,1],[1,1],[1,2] ],
 			checks : [ [0,2],[1,2],[1,1],[2,1] ],
-			shift : [0,1]
+			shift : [0,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [0,1],[1,1],[1,0],[2,0] ],
 			checks : [ [0,-1],[0,0],[1,0],[1,1] ],
-			shift : [0,-1]
+			shift : [0,-1],
+			initShift : [4, 1]
 		  }
 		]
 	  },
@@ -764,14 +783,16 @@ function initGame()
 		    height : 3,
 	        coords : [ [1,0],[1,1],[0,1],[0,2] ],
 			checks : [ [-1,1],[0,1],[0,2],[1,2] ],
-			shift : [-1,1]
+			shift : [-1,1],
+			initShift : [4, 0]
 		  },
 		  {
 		    width : 3,
 		    height : 2,
 	        coords : [ [0,0],[1,0],[1,1],[2,1] ],
 			checks : [ [2,-1],[2,0],[1,0],[1,1] ],
-			shift : [1,-1]
+			shift : [1,-1],
+			initShift : [4, 1]
 		  }
 		]
 	  }
