@@ -201,7 +201,7 @@ function generateMarkers()
 	game.markers[i] = marker;
   }
 }
-function setMarkers()
+function getMaxDiff()
 {
   var fi = game.current.figureInfo.rotations[game.current.rotation];
   var diff = 100;
@@ -227,6 +227,12 @@ function setMarkers()
 	if (coldiff < diff)
 	  diff = coldiff;
   }
+  return diff;
+}
+function setMarkers()
+{
+  var diff = getMaxDiff();
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
   for (var i = 0; i < 4; i++)
   {
     var marker = game.markers[i];
@@ -386,7 +392,7 @@ function gameStep()
 	  break;
 	
 	default:
-	  alert('Error: unknown state : ' + game.state);  // TODO
+	  alert('Error: unknown state : ' + game.state);
 	  break;
   }
 }
@@ -523,8 +529,20 @@ function processKeyDown(event)
   else if (events.keyCode == 32) // Пробел - опустить фигуру до низа
   {
     // TODO
-	clearTimeout(game.stepCallback);
-	game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+    var diff = getMaxDiff();
+	if (diff > 0)
+	{
+	  game.current.shift[1] += diff;
+      var fi = game.current.figureInfo.rotations[game.current.rotation];
+      for (var i = 0; i < 4; i++)
+      {
+        var cell = game.current.elements[i];
+	    var coords = fi.coords[i];
+        cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+      }
+	}
+	//clearTimeout(game.stepCallback);
+	//game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
   }
 }
 function processKeyUp(event)
