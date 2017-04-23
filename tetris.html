@@ -98,19 +98,20 @@
 }
 .popupText
 {
-  margin-top: 50px;
-  margin-bottom: 50px;
+  margin-top: 30px;
+  margin-bottom: 10px;
   width: 100%;
   text-align: center;
   font-size: 50px;
 }
 .popupButton
 {
-  margin-left: 50px;
-  width: 300px;
-  height: 100px;
+  width: 170px;
+  height: 70px;
   text-align: center;
-  font-size: 40px;
+  font-size: 25px;
+  position: absolute;
+  top: 200px;
 }
 .item0
 {
@@ -388,7 +389,7 @@ function gameStep()
 	
     case "gameover" :
 	  saveHScore();
-	  showPopup("Игра окончена", "Новая игра");
+	  showPopup("Игра окончена", null, "Новая игра");
 	  break;
 	
 	default:
@@ -524,7 +525,7 @@ function processKeyDown(event)
 	  clearTimeout(game.stepCallback);
     game.stateAfterPause = game.state;
     game.state = "paused";
-	showPopup("Пауза", "Продолжить");
+	showPopup("Пауза", "Продолжить", "Новая игра");
   }
   else if (events.keyCode == 32) // Пробел - опустить фигуру до низа
   {
@@ -571,19 +572,37 @@ function getHScore()
   else
     return 0;
 }
-function showPopup(mainText, buttonText)
+function showPopup(mainText, resumeText, newGameText)
 {
   $("popupText").innerHTML = mainText;
-  $("popupButton").innerHTML = buttonText;
+  if (resumeText)
+  {
+    var resumeButton = $("resumeButton");
+    resumeButton.style.display = "";
+    resumeButton.innerHTML = resumeText;
+	resumeButton.style.left = newGameText ? "20px" : "115px";
+  }
+  else
+    $("resumeButton").style.display = "none";
+  if (newGameText)
+  {
+    var newGameButton = $("newGameButton");
+    newGameButton.style.display = "";
+    newGameButton.innerHTML = newGameText;
+	newGameButton.style.left = resumeText ? "210px" : "115px";
+  }
+  else
+    $("newGameButton").style.display = "none";
   $("popup").style.display = "";
 }
 function hidePopup()
 {
   $("popup").style.display = "none";
 }
-function popupButtonClick()
+function popupButtonClick(newGame)
 {
-  if (game.state == "gameover")
+  //if (game.state == "gameover")
+  if (newGame)
   {
     clearGameZone();
     initGame();
@@ -605,6 +624,8 @@ function clearGameZone()
 	nextBlock.removeChild(game.next.elements[i]);
 	if (game.markers[i] != null)
 	  gameZone.removeChild(game.markers[i]);
+	if ((game.current != null) && game.current.elements[i].parentNode)
+	  gameZone.removeChild(game.current.elements[i]);
   }
 }
 function initGame()
@@ -848,7 +869,7 @@ function initGame()
   updateStat();
   //gameStep(); игра запускается по нажатию кнопки, а не автоматом
   game.stateAfterPause = "next";
-  showPopup("TETRIS", "Начать игру");
+  showPopup("TETRIS", null, "Начать игру");
 }
 window.onload = initGame;
 </script>
@@ -876,7 +897,13 @@ window.onload = initGame;
 </div>
 <div id="popup" class="popup" style="display:none;">
   <div id="popupText" class="popupText">TETRIS</div>
-  <button id="popupButton" class="popupButton" onclick="popupButtonClick();">Начать Игру</button>
+  <table style="width:100%;">
+  <tr><td width="15%" align="center">&lArr;</td><td width="35%" align="left">влево</td><td width="15%" align="center">&rArr;</td><td width="35%" align="left">вправо</td></tr>
+  <tr><td align="center">&uArr;</td><td align="left">вращение</td><td align="center">&dArr;</td><td align="left">ускорение</td></tr>
+  <tr><td align="center">P</td><td align="left">пауза</td><td align="center">ПРОБЕЛ</td><td align="left">опустить вниз</td></tr>
+  </table>
+  <button id="resumeButton" class="popupButton" onclick="popupButtonClick(false);">Продолжить</button>
+  <button id="newGameButton" class="popupButton" onclick="popupButtonClick(true);">Новая игра</button>
 </div>
 </body>
 </html>
