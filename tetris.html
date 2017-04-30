@@ -202,15 +202,14 @@ function generateMarkers()
 	game.markers[i] = marker;
   }
 }
-function getMaxDiff()
+function getFigureMaxDiff(fi, shift)
 {
-  var fi = game.current.figureInfo.rotations[game.current.rotation];
   var diff = 100;
   for (var i = 0; i < 4; i++)
   {
     var coords = fi.coords[i];
-	var x = coords[0] + game.current.shift[0];
-	var y = coords[1] + game.current.shift[1];
+	var x = coords[0] + shift[0];
+	var y = coords[1] + shift[1];
 	var coldiff = 100;
 	for (var j = 1; ; j++)
 	{
@@ -229,6 +228,10 @@ function getMaxDiff()
 	  diff = coldiff;
   }
   return diff;
+}
+function getMaxDiff()
+{
+  return getFigureMaxDiff(game.current.figureInfo.rotations[game.current.rotation], game.current.shift);
 }
 function setMarkers()
 {
@@ -250,10 +253,10 @@ function updateStat()
   game.level = div(game.lines, 10) + 1;
   game.interval = (game.level > 10) ? 50 : (1000 - (game.level - 1) * 100);
   
-  updateStatItem("lines", game.lines)
-  updateStatItem("level", game.level)
-  updateStatItem("score", game.score)
-  updateStatItem("hscore", game.hscore)
+  updateStatItem("lines", game.lines);
+  updateStatItem("level", game.level);
+  updateStatItem("score", game.autogamed ? "авто" : game.score);
+  updateStatItem("hscore", game.hscore);
 }
 function updateStatItem(itemId, value)
 {
@@ -280,6 +283,7 @@ function gameStep()
 		break;
 	  }
 	  
+	  game.autoTarget = null;
 	  var gameZone = $("gameZone");
       game.current = game.next;
 	  game.current.shift = [];
@@ -335,7 +339,8 @@ function gameStep()
 	  break;
 	
     case "stepEnd" :
-	  game.score += 1;
+	  if (!game.autogames)
+	    game.score += 1;
 	  var fi = game.current.figureInfo.rotations[game.current.rotation];
       for (var i = 0; i < 4; i++)
 	  {
@@ -441,74 +446,15 @@ function processKeyDown(event)
   events = event || window.event;
   if (events.keyCode == 37) // влево
   {
-    if (game.current.shift[0] == 0)
-	  return;
-    for (var i = 0; i < 4; i++)
-	{
-      var coords = fi.coords[i];
-	  if (game.gameZone[coords[0] + game.current.shift[0] - 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
-	    return;
-	}
-	game.current.shift[0] -= 1;
-    for (var i = 0; i < 4; i++)
-    {
-      var cell = game.current.elements[i];
-	  var coords = fi.coords[i];
-      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
-	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
-	}
-    setMarkers();
+    moveLeftFigure();
   }
   else if (events.keyCode == 39) // вправо
   {
-    if (game.current.shift[0] + fi.width >= 10)
-	  return;
-    for (var i = 0; i < 4; i++)
-	{
-      var coords = fi.coords[i];
-	  if (game.gameZone[coords[0] + game.current.shift[0] + 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
-	    return;
-	}
-	game.current.shift[0] += 1;
-    for (var i = 0; i < 4; i++)
-    {
-      var cell = game.current.elements[i];
-	  var coords = fi.coords[i];
-      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
-	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
-	}
-    setMarkers();
+    moveRightFigure();
   }
   else if (events.keyCode == 38) // вверх (вращение)
   {
-    if (fi.checks.length == 0)
-	  return;
-	for (var i = 0; i < 4; i++)
-    {
-	  var checks = fi.checks[i];
-	  var x = game.current.shift[0] + checks[0];
-	  if ((x < 0) || (x >= 10))
-	    return;
-	  var y = game.current.shift[1] + checks[1];
-	  if ((y < 0) || (y >= 19))
-	    return;
-	  if (game.gameZone[x][y] != null) // клетка под фигуру занята
-	    return;
-	}
-	game.current.rotation += 1;
-	if (game.current.rotation >= game.current.figureInfo.rotations.length)
-	  game.current.rotation = 0;
-	game.current.shift[0] += fi.shift[0];
-	game.current.shift[1] += fi.shift[1];
-	fi = game.current.figureInfo.rotations[game.current.rotation];
-    for (var i = 0; i < 4; i++)
-    {
-      var cell = game.current.elements[i];
-	  var coords = fi.coords[i];
-      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
-	  cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
-	}
-    setMarkers();
+    rotateFigure();
   }
   else if (events.keyCode == 40) // вниз (ускорение падения)
   {
@@ -529,21 +475,7 @@ function processKeyDown(event)
   }
   else if (events.keyCode == 32) // Пробел - опустить фигуру до низа
   {
-    // TODO
-    var diff = getMaxDiff();
-	if (diff > 0)
-	{
-	  game.current.shift[1] += diff;
-      var fi = game.current.figureInfo.rotations[game.current.rotation];
-      for (var i = 0; i < 4; i++)
-      {
-        var cell = game.current.elements[i];
-	    var coords = fi.coords[i];
-        cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
-      }
-	}
-	//clearTimeout(game.stepCallback);
-	//game.stepCallback = setTimeout(gameStep, game.fast ? game.fastInterval : game.interval);
+    moveDown();
   }
 }
 function processKeyUp(event)
@@ -552,6 +484,95 @@ function processKeyUp(event)
   if (events.keyCode == 40) // вниз (убираем ускорение падения)
   {
     game.fast = false;
+  }
+}
+function moveLeftFigure()
+{
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
+  if (game.current.shift[0] == 0)
+    return;
+  for (var i = 0; i < 4; i++)
+  {
+    var coords = fi.coords[i];
+	if (game.gameZone[coords[0] + game.current.shift[0] - 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
+	  return;
+  }
+  game.current.shift[0] -= 1;
+  for (var i = 0; i < 4; i++)
+  {
+    var cell = game.current.elements[i];
+	var coords = fi.coords[i];
+    cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+  }
+  setMarkers();
+}
+function moveRightFigure()
+{
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
+  if (game.current.shift[0] + fi.width >= 10)
+	return;
+  for (var i = 0; i < 4; i++)
+  {
+    var coords = fi.coords[i];
+	if (game.gameZone[coords[0] + game.current.shift[0] + 1][coords[1] + game.current.shift[1]] != null) // клетка под фигуру занята
+	  return;
+  }
+  game.current.shift[0] += 1;
+  for (var i = 0; i < 4; i++)
+  {
+    var cell = game.current.elements[i];
+	var coords = fi.coords[i];
+    cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+  }
+  setMarkers();
+}
+function rotateFigure()
+{
+  var fi = game.current.figureInfo.rotations[game.current.rotation];
+  if (fi.checks.length == 0)
+	return;
+  for (var i = 0; i < 4; i++)
+  {
+	var checks = fi.checks[i];
+	var x = game.current.shift[0] + checks[0];
+	if ((x < 0) || (x >= 10))
+	  return;
+	var y = game.current.shift[1] + checks[1];
+	if ((y < 0) || (y >= 19))
+	  return;
+	if (game.gameZone[x][y] != null) // клетка под фигуру занята
+	  return;
+  }
+  game.current.rotation += 1;
+  if (game.current.rotation >= game.current.figureInfo.rotations.length)
+	game.current.rotation = 0;
+  game.current.shift[0] += fi.shift[0];
+  game.current.shift[1] += fi.shift[1];
+  fi = game.current.figureInfo.rotations[game.current.rotation];
+  for (var i = 0; i < 4; i++)
+  {
+	var cell = game.current.elements[i];
+	var coords = fi.coords[i];
+	cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+	cell.style.left = (5 + 30 * (coords[0] + game.current.shift[0])) + "px";
+  }
+  setMarkers();
+}
+function moveDown()
+{
+  var diff = getMaxDiff();
+  if (diff > 0)
+  {
+	game.current.shift[1] += diff;
+    var fi = game.current.figureInfo.rotations[game.current.rotation];
+    for (var i = 0; i < 4; i++)
+    {
+      var cell = game.current.elements[i];
+	  var coords = fi.coords[i];
+      cell.style.top = (20 + 30 * (coords[1] + game.current.shift[1])) + "px";
+    }
   }
 }
 function saveHScore()
@@ -574,6 +595,7 @@ function getHScore()
 }
 function showPopup(mainText, resumeText, newGameText)
 {
+  clearTimeout(game.autostepCallback);
   $("popupText").innerHTML = mainText;
   if (resumeText)
   {
@@ -601,13 +623,22 @@ function hidePopup()
 }
 function popupButtonClick(newGame)
 {
-  //if (game.state == "gameover")
   if (newGame)
   {
     clearGameZone();
     initGame();
   }
   hidePopup();
+  
+  var autogame = $("autogame").checked;
+  game.autogame = autogame;
+  if (autogame)
+  {
+    game.autogamed = true;
+	updateStatItem("score", "авто");
+	game.autostepCallback = setTimeout(autogameStep, game.autoInterval);
+  }
+  
   game.state = game.stateAfterPause;
   gameStep();
 }
@@ -627,6 +658,55 @@ function clearGameZone()
 	if ((game.current != null) && game.current.elements[i].parentNode)
 	  gameZone.removeChild(game.current.elements[i]);
   }
+}
+function autogameStep()
+{
+  if (game.state != "step")
+  {
+    game.autostepCallback = setTimeout(autogameStep, game.autoInterval);
+    return;
+  }
+  if (!game.autoTarget)
+    defineAutoTarget();
+  
+  if (game.current.rotation != game.autoTarget.rotation)
+    rotateFigure();
+  else if (game.current.shift[0] != game.autoTarget.shift[0])
+  {
+    if (game.current.shift[0] < game.autoTarget.shift[0])
+	  moveRightFigure();
+	else
+	  moveLeftFigure();
+  }
+  else
+    moveDown();
+  // TODO
+  game.autostepCallback = setTimeout(autogameStep, game.autoInterval);
+}
+function defineAutoTarget()
+{
+  var maxDiff = 0;
+  game.autoTarget =
+  {
+    rotation : game.current.rotation,
+	shift : [0,0]
+  };
+  for (var r = 0; r < game.current.figureInfo.rotations.length; r++)
+  {
+    var fi = game.current.figureInfo.rotations[r];
+	for (var i = 0; i <= 10 - fi.width; i++)
+	{
+	  var diff = getFigureMaxDiff(fi, [i, 0]);
+	  if (diff > maxDiff)
+	  {
+	    maxDiff = diff;
+		game.autoTarget.rotation = r;
+		game.autoTarget.shift[0] = i;
+		game.autoTarget.shift[1] = diff;
+	  }
+	}
+  }
+  // TODO более продвинутый алгоритм
 }
 function initGame()
 {
@@ -857,10 +937,14 @@ function initGame()
 	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
 	  [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]
 	],
-	interval : 300,//1000,
+	interval : 1000,
 	fastInterval : 30,
+	autoInterval: 100,
 	fast : false,
-	state : 'paused'
+	state : 'paused',
+	autogame : false,
+	autogamed : false,
+	autoTarget : null
   };
   document.onkeydown = processKeyDown;
   document.onkeyup = processKeyUp;
@@ -901,6 +985,7 @@ window.onload = initGame;
   <tr><td width="15%" align="center">&lArr;</td><td width="35%" align="left">влево</td><td width="15%" align="center">&rArr;</td><td width="35%" align="left">вправо</td></tr>
   <tr><td align="center">&uArr;</td><td align="left">вращение</td><td align="center">&dArr;</td><td align="left">ускорение</td></tr>
   <tr><td align="center">P</td><td align="left">пауза</td><td align="center">ПРОБЕЛ</td><td align="left">опустить вниз</td></tr>
+  <tr><td align="center" colspan="4"><label><input type="checkbox" id="autogame">Автоигра</label></td></tr>
   </table>
   <button id="resumeButton" class="popupButton" onclick="popupButtonClick(false);">Продолжить</button>
   <button id="newGameButton" class="popupButton" onclick="popupButtonClick(true);">Новая игра</button>
