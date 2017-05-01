@@ -680,12 +680,13 @@ function autogameStep()
   }
   else
     moveDown();
-  // TODO
   game.autostepCallback = setTimeout(autogameStep, game.autoInterval);
 }
 function defineAutoTarget()
 {
   var maxDiff = 0;
+  var storedHeight = 10;
+  var storedSumY = 10;
   game.autoTarget =
   {
     rotation : game.current.rotation,
@@ -694,12 +695,18 @@ function defineAutoTarget()
   for (var r = 0; r < game.current.figureInfo.rotations.length; r++)
   {
     var fi = game.current.figureInfo.rotations[r];
+	var sumY = 0;
+	for (var i = 0; i < 4; i++)
+	  sumY += fi.coords[i][1];
 	for (var i = 0; i <= 10 - fi.width; i++)
 	{
 	  var diff = getFigureMaxDiff(fi, [i, 0]);
-	  if (diff > maxDiff)
+	  var diffBottom = diff + fi.height - 1;
+	  if ((diffBottom > maxDiff) || ((diffBottom == maxDiff) && ((storedHeight > fi.height) || ((storedHeight == fi.height) && (storedSumY < sumY)))))
 	  {
-	    maxDiff = diff;
+	    maxDiff = diffBottom;
+		storedHeight = fi.height;
+		storedSumY = sumY;
 		game.autoTarget.rotation = r;
 		game.autoTarget.shift[0] = i;
 		game.autoTarget.shift[1] = diff;
