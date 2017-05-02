@@ -688,7 +688,9 @@ function defineAutoTarget()
   {
     diff : 0,
 	height : 10,
-	sumY : 0
+	sumY : 0,
+	innerHoles : true,
+	bottomHoles : true
   };
   game.autoTarget =
   {
@@ -708,7 +710,9 @@ function defineAutoTarget()
       {
         diff : diff + fi.height - 1,
 	    height : fi.height,
-	    sumY : sumY
+	    sumY : sumY,
+	    innerHoles : hasHoles(fi.innerHoles, i, diff),
+	    bottomHoles : hasHoles(fi.bottomHoles, i, diff)
       };
 	  if (checkBestTarget(best, current))
 	  {
@@ -723,6 +727,9 @@ function defineAutoTarget()
 }
 function checkBestTarget(best, current)
 {
+  if (best.bottomHoles && !current.bottomHoles && (best.diff - current.diff < 2))
+    return true;
+  
   if (current.diff > best.diff)
     return true;
   else if (current.diff == best.diff)
@@ -733,7 +740,29 @@ function checkBestTarget(best, current)
 	{
 	  if (best.sumY < current.sumY)
 	    return true;
+	  else if (best.sumY == current.sumY)
+	  {
+	    if (best.innerHoles && !current.innerHoles)
+		  return true;
+		else if (best.bottomHoles && !current.bottomHoles)
+		  return true;
+	  }
 	}
+  }
+	
+  return false;
+}
+function hasHoles(holes, x, y)
+{
+  if (holes.length == 0)
+	return false;
+  for (var i = 0; i < holes.length; i++)
+  {
+    var shift = holes[i];
+	if (y + shift[1] >= 19)
+	  continue;
+	if (game.gameZone[x + shift[0]][y + shift[1]] == null)
+	  return true;
   }
   return false;
 }
@@ -754,7 +783,9 @@ function initGame()
 	        coords : [ [0,0],[0,1],[0,2],[0,3] ],
 			checks : [ [-1,1],[0,1],[1,1],[2,1] ],
 			shift : [-1,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ ],
+			bottomHoles : [ ]
 		  },
 		  {
 		    width : 4,
@@ -762,7 +793,9 @@ function initGame()
 	        coords : [ [0,0],[1,0],[2,0],[3,0] ],
 			checks : [ [1,-1],[1,0],[1,1],[1,2] ],
 			shift : [1,-1],
-			initShift : [3, 1]
+			initShift : [3, 1],
+			innerHoles : [ ],
+			bottomHoles : [ [0,1],[1,1],[2,1],[3,1] ]
 		  }
 		]
 	  },
@@ -777,7 +810,9 @@ function initGame()
 	        coords : [ [0,0],[0,1],[0,2],[1,2] ],
 			checks : [ [-1,1],[0,1],[1,1],[1,0] ],
 			shift : [-1,0],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ ],
+			bottomHoles : [ [0,3],[1,3] ]
 		  },
 		  {
 		    width : 3,
@@ -785,7 +820,9 @@ function initGame()
 	        coords : [ [0,1],[1,1],[2,1],[2,0] ],
 			checks : [ [2,2],[2,1],[2,0],[1,0] ],
 			shift : [1,0],
-			initShift : [3, 1]
+			initShift : [3, 1],
+			innerHoles : [ ],
+			bottomHoles : [ [0,2],[1,2],[2,2] ]
 		  },
 		  {
 		    width : 2,
@@ -793,7 +830,9 @@ function initGame()
 	        coords : [ [1,2],[1,1],[1,0],[0,0] ],
 			checks : [ [2,1],[1,1],[0,1],[0,2] ],
 			shift : [0,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [0,1] ],
+			bottomHoles : [ [0,1],[1,3] ]
 		  },
 		  {
 		    width : 3,
@@ -801,7 +840,9 @@ function initGame()
 	        coords : [ [2,0],[1,0],[0,0],[0,1] ],
 			checks : [ [0,-1],[0,0],[0,1],[1,1] ],
 			shift : [0,-1],
-			initShift : [4, 1]
+			initShift : [4, 1],
+			innerHoles : [ [1,1],[2,1] ],
+			bottomHoles : [ [0,2],[1,1],[2,1] ]
 		  }
 		]
 	  },
@@ -816,7 +857,9 @@ function initGame()
 	        coords : [ [1,0],[1,1],[1,2],[0,2] ],
 			checks : [ [-1,1],[0,1],[1,1],[1,2] ],
 			shift : [-1,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ ],
+			bottomHoles : [ [0,3],[1,3] ]
 		  },
 		  {
 		    width : 3,
@@ -824,7 +867,9 @@ function initGame()
 	        coords : [ [0,0],[1,0],[2,0],[2,1] ],
 			checks : [ [1,1],[1,0],[1,-1],[2,-1] ],
 			shift : [1,-1],
-			initShift : [3, 1]
+			initShift : [3, 1],
+			innerHoles : [ [0,1],[1,1] ],
+			bottomHoles : [ [0,1],[1,1],[2,2] ]
 		  },
 		  {
 		    width : 2,
@@ -832,7 +877,9 @@ function initGame()
 	        coords : [ [0,2],[0,1],[0,0],[1,0] ],
 			checks : [ [2,1],[1,1],[0,1],[0,0] ],
 			shift : [0,0],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [1,1] ],
+			bottomHoles : [ [0,3],[1,1] ]
 		  },
 		  {
 		    width : 3,
@@ -840,7 +887,9 @@ function initGame()
 	        coords : [ [2,1],[1,1],[0,1],[0,0] ],
 			checks : [ [1,0],[1,1],[1,2],[0,2] ],
 			shift : [0,0],
-			initShift : [4, 1]
+			initShift : [4, 1],
+			innerHoles : [ ],
+			bottomHoles : [ [0,2],[1,2],[2,2] ]
 		  }
 		]
 	  },
@@ -855,7 +904,9 @@ function initGame()
 	        coords : [ [0,0],[0,1],[0,2],[1,1] ],
 			checks : [ [-1,1],[0,1],[1,1],[0,0] ],
 			shift : [-1,0],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [1,2] ],
+			bottomHoles : [ [0,3],[1,2] ]
 		  },
 		  {
 		    width : 3,
@@ -863,7 +914,9 @@ function initGame()
 	        coords : [ [0,1],[1,1],[2,1],[1,0] ],
 			checks : [ [1,2],[1,1],[1,0],[0,1] ],
 			shift : [0,0],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ ],
+			bottomHoles : [ [0,2],[1,2],[2,2] ]
 		  },
 		  {
 		    width : 2,
@@ -871,7 +924,9 @@ function initGame()
 	        coords : [ [1,2],[1,1],[1,0],[0,1] ],
 			checks : [ [0,1],[1,1],[2,1],[1,2] ],
 			shift : [0,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [0,2] ],
+			bottomHoles : [ [0,2],[1,3] ]
 		  },
 		  {
 		    width : 3,
@@ -879,7 +934,9 @@ function initGame()
 	        coords : [ [2,0],[1,0],[0,0],[1,1] ],
 			checks : [ [1,-1],[1,0],[1,1],[2,0] ],
 			shift : [1,-1],
-			initShift : [4, 1]
+			initShift : [4, 1],
+			innerHoles : [ [0,1],[2,1] ],
+			bottomHoles : [ [0,1],[1,2],[2,1] ]
 		  }
 		]
 	  },
@@ -894,7 +951,9 @@ function initGame()
 	        coords : [ [0,0],[0,1],[1,0],[1,1] ],
 			checks : [],
 			shift : [0,0],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ ],
+			bottomHoles : [ [0,2],[1,2] ]
 		  }
 		]
 	  },
@@ -909,7 +968,9 @@ function initGame()
 	        coords : [ [0,0],[0,1],[1,1],[1,2] ],
 			checks : [ [0,2],[1,2],[1,1],[2,1] ],
 			shift : [0,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [0,2] ],
+			bottomHoles : [ [0,2],[1,3] ]
 		  },
 		  {
 		    width : 3,
@@ -917,7 +978,9 @@ function initGame()
 	        coords : [ [0,1],[1,1],[1,0],[2,0] ],
 			checks : [ [0,-1],[0,0],[1,0],[1,1] ],
 			shift : [0,-1],
-			initShift : [4, 1]
+			initShift : [4, 1],
+			innerHoles : [ [2,1] ],
+			bottomHoles : [ [0,2],[1,2],[2,1] ]
 		  }
 		]
 	  },
@@ -932,7 +995,9 @@ function initGame()
 	        coords : [ [1,0],[1,1],[0,1],[0,2] ],
 			checks : [ [-1,1],[0,1],[0,2],[1,2] ],
 			shift : [-1,1],
-			initShift : [4, 0]
+			initShift : [4, 0],
+			innerHoles : [ [1,2] ],
+			bottomHoles : [ [0,3],[1,2] ]
 		  },
 		  {
 		    width : 3,
@@ -940,7 +1005,9 @@ function initGame()
 	        coords : [ [0,0],[1,0],[1,1],[2,1] ],
 			checks : [ [2,-1],[2,0],[1,0],[1,1] ],
 			shift : [1,-1],
-			initShift : [4, 1]
+			initShift : [4, 1],
+			innerHoles : [ [0,1] ],
+			bottomHoles : [ [0,1],[1,2],[2,2] ]
 		  }
 		]
 	  }
