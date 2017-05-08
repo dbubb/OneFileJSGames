@@ -86,6 +86,7 @@
 }
 .popup
 {
+  opacity: 0.9;
   border: 3px solid black;
   background-color: #FFFFFF;
   margin: 0px;
@@ -252,6 +253,7 @@ function updateStat()
     game.hscore = game.score;
   game.level = div(game.lines, 10) + 1;
   game.interval = (game.level > 10) ? 50 : (1000 - (game.level - 1) * 100);
+  game.autoInterval = (game.interval > 200) ? 100 : game.interval / 2;
   
   updateStatItem("lines", game.lines);
   updateStatItem("level", game.level);
@@ -689,7 +691,7 @@ function defineAutoTarget()
     diff : 0,
     fromEdge : 10,
 	height : 10,
-	sumY : 0,
+	lastLineBlocks : 0,
 	holes : true,
 	lines : 0
   };
@@ -701,9 +703,10 @@ function defineAutoTarget()
   for (var r = 0; r < game.current.figureInfo.rotations.length; r++)
   {
     var fi = game.current.figureInfo.rotations[r];
-	var sumY = 0;
+	var lastLineBlocks = 0;
 	for (var i = 0; i < 4; i++)
-	  sumY += fi.coords[i][1];
+	  if (fi.coords[i][1] == (fi.height - 1))
+	    lastLineBlocks++;
 	for (var i = 0; i <= 10 - fi.width; i++)
 	{
 	  var diff = getFigureMaxDiff(fi, [i, 0]);
@@ -725,7 +728,7 @@ function defineAutoTarget()
         diff : diff + fi.height - 1,
         fromEdge : Math.min(i, 10 - (i + fi.width)),
 	    height : fi.height,
-	    sumY : sumY,
+	    lastLineBlocks : lastLineBlocks,
 	    holes : hasHoles(fi.holesChecks, i, diff),
 	    lines : lines
       };
@@ -751,13 +754,13 @@ function checkBestTarget(best, current)
     return true;
   else if (current.diff == best.diff)
   {
-    if (best.height > current.height)
+    if (best.lastLineBlocks < current.lastLineBlocks)
 	  return true;
-	else if (best.height == current.height)
+	else if (best.lastLineBlocks == current.lastLineBlocks)
 	{
-	  if (best.sumY < current.sumY)
+	  if (best.height > current.height)
 	    return true;
-	  else if (best.sumY == current.sumY)
+	  else if (best.height == current.height)
 	  {
         if (best.lines !== current.lines)
           return current.lines > best.lines;
