@@ -249,7 +249,7 @@ function setMarkers()
 }
 function updateStat()
 {
-  if (game.score > game.hscore)
+  if (!game.autogamed && (game.score > game.hscore))
     game.hscore = game.score;
   game.level = div(game.lines, 10) + 1;
   game.interval = (game.level > 10) ? 50 : (1000 - (game.level - 1) * 100);
@@ -341,7 +341,7 @@ function gameStep()
 	  break;
 	
     case "stepEnd" :
-	  if (!game.autogames)
+	  if (!game.autogamed)
 	    game.score += 1;
 	  var fi = game.current.figureInfo.rotations[game.current.rotation];
       for (var i = 0; i < 4; i++)
@@ -374,14 +374,17 @@ function gameStep()
 	  if (removeLinesCount > 0)
 	  {
 	    game.lines += removeLinesCount;
-		if (removeLinesCount == 1)
-		  game.score += 10;
-		else if (removeLinesCount == 2)
-		  game.score += 30;
-		else if (removeLinesCount == 3)
-		  game.score += 60;
-		else
-		  game.score += 100;
+	    if (!game.autogamed)
+		{
+		  if (removeLinesCount == 1)
+		    game.score += 10;
+		  else if (removeLinesCount == 2)
+		    game.score += 30;
+		  else if (removeLinesCount == 3)
+		    game.score += 60;
+		  else
+		    game.score += 100;
+		}
 	  }
 	  updateStat();
 	  game.stepCallback = null;
@@ -692,7 +695,8 @@ function defineAutoTarget()
     fromEdge : 10,
 	height : 10,
 	lastLineBlocks : 0,
-	holes : true,
+	bottomHoles : true,
+	sideHoles : true,
 	lines : 0
   };
   game.autoTarget =
@@ -729,7 +733,8 @@ function defineAutoTarget()
         fromEdge : Math.min(i, 10 - (i + fi.width)),
 	    height : fi.height,
 	    lastLineBlocks : lastLineBlocks,
-	    holes : hasHoles(fi.holesChecks, i, diff),
+	    bottomHoles : countHoles(fi.bottomChecks, i, diff),
+		sideHoles : countHoles(fi.sideChecks, i, diff),
 	    lines : lines
       };
 	  if (checkBestTarget(best, current))
@@ -747,8 +752,8 @@ function checkBestTarget(best, current)
   if (best.lines !== current.lines)
     return current.lines > best.lines;
   
-  if ((best.holes !== current.holes) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
-    return !current.holes;
+  if ((best.bottomHoles !== current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
+    return current.bottomHoles < best.bottomHoles;
   
   if (current.diff > best.diff)
     return true;
@@ -762,29 +767,30 @@ function checkBestTarget(best, current)
 	    return true;
 	  else if (best.height == current.height)
 	  {
-        if (best.lines !== current.lines)
-          return current.lines > best.lines;
+        if (best.sideHoles !== current.sideHoles)
+          return current.sideHoles < best.sideHoles;
+	  
 		return current.fromEdge < best.fromEdge;
 	  }
 	}
   }
-  // TODO более продвинутый алгоритм
 	
   return false;
 }
-function hasHoles(holes, x, y)
+function countHoles(holes, x, y)
 {
   if (holes.length == 0)
-	return false;
+	return 0;
+  var count = 0;
   for (var i = 0; i < holes.length; i++)
   {
     var shift = holes[i];
-	if (y + shift[1] >= 19)
+	if ((y + shift[1] >= 19) || (x + shift[0] < 0) || (x + shift[0] >= 10))
 	  continue;
 	if (game.gameZone[x + shift[0]][y + shift[1]] == null)
-	  return true;
+	  count++;
   }
-  return false;
+  return count;
 }
 function initGame()
 {
@@ -804,7 +810,8 @@ function initGame()
 			checks : [ [-1,1],[0,1],[1,1],[2,1] ],
 			shift : [-1,1],
 			initShift : [4, 0],
-			holesChecks : [ ]
+			bottomChecks : [ ],
+			sideChecks : [ [-1,0],[-1,1],[-1,2],[-1,3],[1,0],[1,1],[1,2],[1,3] ]
 		  },
 		  {
 		    width : 4,
@@ -813,7 +820,8 @@ function initGame()
 			checks : [ [1,-1],[1,0],[1,1],[1,2] ],
 			shift : [1,-1],
 			initShift : [3, 1],
-			holesChecks : [ [0,1],[1,1],[2,1],[3,1] ]
+			bottomChecks : [ [0,1],[1,1],[2,1],[3,1] ],
+			sideChecks : [ [-1,0],[4,0] ]
 		  }
 		]
 	  },
@@ -829,7 +837,8 @@ function initGame()
 			checks : [ [-1,1],[0,1],[1,1],[1,0] ],
 			shift : [-1,0],
 			initShift : [4, 0],
-			holesChecks : [ [0,3],[1,3] ]
+			bottomChecks : [ [0,3],[1,3] ],
+			sideChecks : [ [-1,0],[-1,1],[-1,2],[2,2] ]
 		  },
 		  {
 		    width : 3,
@@ -838,7 +847,8 @@ function initGame()
 			checks : [ [2,2],[2,1],[2,0],[1,0] ],
 			shift : [1,0],
 			initShift : [3, 1],
-			holesChecks : [ [0,2],[1,2],[2,2] ]
+			bottomChecks : [ [0,2],[1,2],[2,2] ],
+			sideChecks : [ [-1,1],[3,0],[3,1] ]
 		  },
 		  {
 		    width : 2,
@@ -847,7 +857,8 @@ function initGame()
 			checks : [ [2,1],[1,1],[0,1],[0,2] ],
 			shift : [0,1],
 			initShift : [4, 0],
-			holesChecks : [ [0,1],[1,3] ]
+			bottomChecks : [ [0,1],[1,3] ],
+			sideChecks : [ [-1,0],[0,1],[0,2],[2,0],[2,1],[2,2] ]
 		  },
 		  {
 		    width : 3,
@@ -856,7 +867,8 @@ function initGame()
 			checks : [ [0,-1],[0,0],[0,1],[1,1] ],
 			shift : [0,-1],
 			initShift : [4, 1],
-			holesChecks : [ [0,2],[1,1],[2,1] ]
+			bottomChecks : [ [0,2],[1,1],[2,1] ],
+			sideChecks : [ [-1,0],[-1,1],[3,0],[1,1] ]
 		  }
 		]
 	  },
@@ -872,7 +884,8 @@ function initGame()
 			checks : [ [-1,1],[0,1],[1,1],[1,2] ],
 			shift : [-1,1],
 			initShift : [4, 0],
-			holesChecks : [ [0,3],[1,3] ]
+			bottomChecks : [ [0,3],[1,3] ],
+			sideChecks : [ [-1,2],[2,0],[2,1],[2,2] ]
 		  },
 		  {
 		    width : 3,
@@ -881,7 +894,8 @@ function initGame()
 			checks : [ [1,1],[1,0],[1,-1],[2,-1] ],
 			shift : [1,-1],
 			initShift : [3, 1],
-			holesChecks : [ [0,1],[1,1],[2,2] ]
+			bottomChecks : [ [0,1],[1,1],[2,2] ],
+			sideChecks : [ [-1,0],[1,1],[3,0],[3,1] ]
 		  },
 		  {
 		    width : 2,
@@ -890,7 +904,8 @@ function initGame()
 			checks : [ [2,1],[1,1],[0,1],[0,0] ],
 			shift : [0,0],
 			initShift : [4, 0],
-			holesChecks : [ [0,3],[1,1] ]
+			bottomChecks : [ [0,3],[1,1] ],
+			sideChecks : [ [-1,0],[-1,1],[-1,2],[2,0],[1,1],[1,2] ]
 		  },
 		  {
 		    width : 3,
@@ -899,7 +914,8 @@ function initGame()
 			checks : [ [1,0],[1,1],[1,2],[0,2] ],
 			shift : [0,0],
 			initShift : [4, 1],
-			holesChecks : [ [0,2],[1,2],[2,2] ]
+			bottomChecks : [ [0,2],[1,2],[2,2] ],
+			sideChecks : [ [-1,0],[-1,1],[3,1] ]
 		  }
 		]
 	  },
@@ -915,7 +931,8 @@ function initGame()
 			checks : [ [-1,1],[0,1],[1,1],[0,0] ],
 			shift : [-1,0],
 			initShift : [4, 0],
-			holesChecks : [ [0,3],[1,2] ]
+			bottomChecks : [ [0,3],[1,2] ],
+			sideChecks : [ [-1,0],[-1,1],[-1,2],[2,1],[1,2] ]
 		  },
 		  {
 		    width : 3,
@@ -924,7 +941,8 @@ function initGame()
 			checks : [ [1,2],[1,1],[1,0],[0,1] ],
 			shift : [0,0],
 			initShift : [4, 0],
-			holesChecks : [ [0,2],[1,2],[2,2] ]
+			bottomChecks : [ [0,2],[1,2],[2,2] ],
+			sideChecks : [ [-1,1],[3,1] ]
 		  },
 		  {
 		    width : 2,
@@ -933,7 +951,8 @@ function initGame()
 			checks : [ [0,1],[1,1],[2,1],[1,2] ],
 			shift : [0,1],
 			initShift : [4, 0],
-			holesChecks : [ [0,2],[1,3] ]
+			bottomChecks : [ [0,2],[1,3] ],
+			sideChecks : [ [-1,1],[0,2],[2,0],[2,1],[2,2] ]
 		  },
 		  {
 		    width : 3,
@@ -942,7 +961,8 @@ function initGame()
 			checks : [ [1,-1],[1,0],[1,1],[2,0] ],
 			shift : [1,-1],
 			initShift : [4, 1],
-			holesChecks : [ [0,1],[1,2],[2,1] ]
+			bottomChecks : [ [0,1],[1,2],[2,1] ],
+			sideChecks : [ [-1,0],[0,1],[3,0],[2,1] ]
 		  }
 		]
 	  },
@@ -958,7 +978,8 @@ function initGame()
 			checks : [],
 			shift : [0,0],
 			initShift : [4, 0],
-			holesChecks : [ [0,2],[1,2] ]
+			bottomChecks : [ [0,2],[1,2] ],
+			sideChecks : [ [-1,0],[-1,1],[2,0],[2,1] ]
 		  }
 		]
 	  },
@@ -974,7 +995,8 @@ function initGame()
 			checks : [ [0,2],[1,2],[1,1],[2,1] ],
 			shift : [0,1],
 			initShift : [4, 0],
-			holesChecks : [ [0,2],[1,3] ]
+			bottomChecks : [ [0,2],[1,3] ],
+			sideChecks : [ [-1,0],[-1,1],[0,2],[2,1],[2,2] ]
 		  },
 		  {
 		    width : 3,
@@ -983,7 +1005,8 @@ function initGame()
 			checks : [ [0,-1],[0,0],[1,0],[1,1] ],
 			shift : [0,-1],
 			initShift : [4, 1],
-			holesChecks : [ [0,2],[1,2],[2,1] ]
+			bottomChecks : [ [0,2],[1,2],[2,1] ],
+			sideChecks : [ [-1,1],[3,0],[2,1] ]
 		  }
 		]
 	  },
@@ -999,7 +1022,8 @@ function initGame()
 			checks : [ [-1,1],[0,1],[0,2],[1,2] ],
 			shift : [-1,1],
 			initShift : [4, 0],
-			holesChecks : [ [0,3],[1,2] ]
+			bottomChecks : [ [0,3],[1,2] ],
+			sideChecks : [ [-1,1],[-1,2],[2,0],[2,1],[1,2] ]
 		  },
 		  {
 		    width : 3,
@@ -1008,7 +1032,8 @@ function initGame()
 			checks : [ [2,-1],[2,0],[1,0],[1,1] ],
 			shift : [1,-1],
 			initShift : [4, 1],
-			holesChecks : [ [0,1],[1,2],[2,2] ]
+			bottomChecks : [ [0,1],[1,2],[2,2] ],
+			sideChecks : [ [-1,0],[0,1],[3,1] ]
 		  }
 		]
 	  }
