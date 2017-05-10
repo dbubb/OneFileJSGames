@@ -752,6 +752,9 @@ function checkBestTarget(best, current)
   if (best.lines !== current.lines)
     return current.lines > best.lines;
   
+  if ((current.lines != 0) && (best.height != current.height))
+    return best.height > current.height;
+  
   if ((best.bottomHoles !== current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
     return current.bottomHoles < best.bottomHoles;
   
