@@ -697,7 +697,8 @@ function defineAutoTarget()
 	lastLineBlocks : 0,
 	bottomHoles : true,
 	sideHoles : true,
-	lines : 0
+	lines : 0,
+	workBlocks : 0
   };
   game.autoTarget =
   {
@@ -715,17 +716,25 @@ function defineAutoTarget()
 	{
 	  var diff = getFigureMaxDiff(fi, [i, 0]);
 	  var lines = 0;
+	  var workBlocks = 0;
 	  for (var j = 0; j < fi.height; j++)
 	  {
+	    var lineWorkBlocks = 0;
 	    var filled = 0;
 		for (var x = 0; x < 10; x++)
           if (game.gameZone[x][diff + j] != null)
 		    filled++;
 		for (var k = 0; k < 4; k++)
           if (fi.coords[k][1] == j)
+		  {
 		    filled++;
+			lineWorkBlocks++;
+		  }
 	    if (filled == 10)
+		{
 		  lines++;
+		  workBlocks += lineWorkBlocks;
+		}
 	  }
       var current =
       {
@@ -735,7 +744,8 @@ function defineAutoTarget()
 	    lastLineBlocks : lastLineBlocks,
 	    bottomHoles : countHoles(fi.bottomChecks, i, diff),
 		sideHoles : countHoles(fi.sideChecks, i, diff),
-	    lines : lines
+	    lines : lines,
+		workBlocks : workBlocks
       };
 	  if (checkBestTarget(best, current))
 	  {
@@ -749,13 +759,21 @@ function defineAutoTarget()
 }
 function checkBestTarget(best, current)
 {
-  if (best.lines !== current.lines)
+  if (best.lines != current.lines)
     return current.lines > best.lines;
   
-  if ((current.lines != 0) && (best.height != current.height))
-    return best.height > current.height;
+  if (current.lines != 0)
+  {
+    if (best.workBlocks != current.workBlocks)
+	  return current.workBlocks > best.workBlocks;
+    if (best.height != current.height)
+      return best.height > current.height;
+    if (best.sideHoles != current.sideHoles)
+      return current.sideHoles < best.sideHoles;
+	return current.fromEdge < best.fromEdge;
+  }
   
-  if ((best.bottomHoles !== current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
+  if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
     return current.bottomHoles < best.bottomHoles;
   
   if (current.diff > best.diff)
@@ -770,7 +788,7 @@ function checkBestTarget(best, current)
 	    return true;
 	  else if (best.height == current.height)
 	  {
-        if (best.sideHoles !== current.sideHoles)
+        if (best.sideHoles != current.sideHoles)
           return current.sideHoles < best.sideHoles;
 	  
 		return current.fromEdge < best.fromEdge;
