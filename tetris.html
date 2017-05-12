@@ -790,6 +790,14 @@ function checkBestTarget(best, current)
 	  {
         if (best.sideHoles != current.sideHoles)
           return current.sideHoles < best.sideHoles;
+		
+		if (game.current.figureInfo.type == 'square')
+		{
+		  var bestFlag = best.fromEdge % 2;
+		  var currentFlag = current.fromEdge % 2;
+		  if (bestFlag != currentFlag)
+		    return (currentFlag == 0);
+		}
 	  
 		return current.fromEdge < best.fromEdge;
 	  }
