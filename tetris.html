@@ -766,6 +766,8 @@ function checkBestTarget(best, current)
   {
     if (best.workBlocks != current.workBlocks)
 	  return current.workBlocks > best.workBlocks;
+    if (best.diff != current.diff)
+      return current.diff > best.diff;
     if (best.height != current.height)
       return best.height > current.height;
     if (best.sideHoles != current.sideHoles)
@@ -776,35 +778,24 @@ function checkBestTarget(best, current)
   if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
     return current.bottomHoles < best.bottomHoles;
   
-  if (current.diff > best.diff)
-    return true;
-  else if (current.diff == best.diff)
+  if (best.diff != current.diff)
+    return current.diff > best.diff;
+  if (best.lastLineBlocks != current.lastLineBlocks)
+    return best.lastLineBlocks < current.lastLineBlocks;
+  if (best.height != current.height)
+	return best.height > current.height;
+  if (best.sideHoles != current.sideHoles)
+    return current.sideHoles < best.sideHoles;
+  
+  if (game.current.figureInfo.type == 'square')
   {
-    if (best.lastLineBlocks < current.lastLineBlocks)
-	  return true;
-	else if (best.lastLineBlocks == current.lastLineBlocks)
-	{
-	  if (best.height > current.height)
-	    return true;
-	  else if (best.height == current.height)
-	  {
-        if (best.sideHoles != current.sideHoles)
-          return current.sideHoles < best.sideHoles;
-		
-		if (game.current.figureInfo.type == 'square')
-		{
-		  var bestFlag = best.fromEdge % 2;
-		  var currentFlag = current.fromEdge % 2;
-		  if (bestFlag != currentFlag)
-		    return (currentFlag == 0);
-		}
-	  
-		return current.fromEdge < best.fromEdge;
-	  }
-	}
+	var bestFlag = best.fromEdge % 2;
+	var currentFlag = current.fromEdge % 2;
+	if (bestFlag != currentFlag)
+	  return (currentFlag == 0);
   }
-	
-  return false;
+  
+  return current.fromEdge < best.fromEdge;
 }
 function countHoles(holes, x, y)
 {
