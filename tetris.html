@@ -705,6 +705,23 @@ function defineAutoTarget()
     rotation : game.current.rotation,
 	shift : [0,0]
   };
+  var bottom = [];
+  var topBottom = 100;
+  for (var x = 0; x < 10; x++)
+  {
+    for (var y = 0; y < 19; y++)
+	  if ((game.gameZone[x][y] != null) || (y == 18))
+	  {
+		bottom[x] = y;
+		if (y < topBottom)
+		  topBottom = y;
+	    break;
+	  }
+  }
+  var deepBottomCount = 0;
+  for (var x = 0; x < 10; x++)
+    if (bottom[x] - topBottom > 4)
+	  deepBottomCount++;
   for (var r = 0; r < game.current.figureInfo.rotations.length; r++)
   {
     var fi = game.current.figureInfo.rotations[r];
@@ -747,7 +764,7 @@ function defineAutoTarget()
 	    lines : lines,
 		workBlocks : workBlocks
       };
-	  if (checkBestTarget(best, current))
+	  if (checkBestTarget(best, current, deepBottomCount))
 	  {
 	    best = current;
 		game.autoTarget.rotation = r;
@@ -757,7 +774,7 @@ function defineAutoTarget()
 	}
   }
 }
-function checkBestTarget(best, current)
+function checkBestTarget(best, current, deepBottomCount)
 {
   if (best.lines != current.lines)
     return current.lines > best.lines;
@@ -775,11 +792,13 @@ function checkBestTarget(best, current)
 	return current.fromEdge < best.fromEdge;
   }
   
-  if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2))
+  if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2) && (deepBottomCount < 2))
     return current.bottomHoles < best.bottomHoles;
   
   if (best.diff != current.diff)
     return current.diff > best.diff;
+  if (best.bottomHoles != current.bottomHoles)
+    return current.bottomHoles < best.bottomHoles;
   if (best.lastLineBlocks != current.lastLineBlocks)
     return best.lastLineBlocks < current.lastLineBlocks;
   if (best.height != current.height)
