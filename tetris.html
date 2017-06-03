@@ -699,6 +699,7 @@ function defineAutoTarget()
 	sideHoles : true,
 	lines : 0,
 	workBlocks : 0,
+	emptyCells : 10,
 	unwanted : true
   };
   game.autoTarget =
@@ -735,6 +736,8 @@ function defineAutoTarget()
 	  var diff = getFigureMaxDiff(fi, [i, 0]);
 	  var lines = 0;
 	  var workBlocks = 0;
+      var maxLineWorkBlocks = 0;
+      var emptyCells = 10;
 	  for (var j = 0; j < fi.height; j++)
 	  {
 	    var lineWorkBlocks = 0;
@@ -752,6 +755,12 @@ function defineAutoTarget()
 		{
 		  lines++;
 		  workBlocks += lineWorkBlocks;
+		}
+		if (lineWorkBlocks > maxLineWorkBlocks)
+		{
+		  maxLineWorkBlocks = lineWorkBlocks;
+		  if (10 - filled < emptyCells)
+		    emptyCells = 10 - filled;
 		}
 	  }
 	  var unwanted = false;
@@ -773,6 +782,7 @@ function defineAutoTarget()
 		sideHoles : countHoles(fi.sideChecks, i, diff),
 	    lines : lines,
 		workBlocks : workBlocks,
+	    emptyCells : emptyCells,
 		unwanted : unwanted
       };
 	  if (checkBestTarget(best, current, deepBottomCount))
@@ -802,6 +812,9 @@ function checkBestTarget(best, current, deepBottomCount)
       return current.sideHoles < best.sideHoles;
 	return current.fromEdge < best.fromEdge;
   }
+  
+  if ((current.emptyCells < 3) && (best.emptyCells != current.emptyCells))
+    return current.emptyCells < best.emptyCells;
   
   if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2) && (deepBottomCount < 2))
     return current.bottomHoles < best.bottomHoles;
