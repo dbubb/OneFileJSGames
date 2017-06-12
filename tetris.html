@@ -698,8 +698,9 @@ function defineAutoTarget()
 	bottomHoles : true,
 	sideHoles : true,
 	lines : 0,
+	nextLines : 0,
+	totalLines : 0,
 	workBlocks : 0,
-	emptyCells : 10,
 	unwanted : true
   };
   game.autoTarget =
@@ -736,8 +737,6 @@ function defineAutoTarget()
 	  var diff = getFigureMaxDiff(fi, [i, 0]);
 	  var lines = 0;
 	  var workBlocks = 0;
-      var maxLineWorkBlocks = 0;
-      var emptyCells = 10;
 	  for (var j = 0; j < fi.height; j++)
 	  {
 	    var lineWorkBlocks = 0;
@@ -756,12 +755,45 @@ function defineAutoTarget()
 		  lines++;
 		  workBlocks += lineWorkBlocks;
 		}
-		if (lineWorkBlocks > maxLineWorkBlocks)
+	  }
+	  // Временно делаем вид, что эта фигура уже стоит на данном месте, чтобы проанализировать следующую
+      for (var t = 0; t < 4; t++)
+	  {
+	    var coords = fi.coords[t];
+		if (game.gameZone[coords[0] + i][coords[1] + diff] == null) // может оказаться != null при почти полном стакане
+		  game.gameZone[coords[0] + i][coords[1] + diff] = 1; // просто чтобы не null
+	  }
+	  // Анализируем следующую фигуру
+	  var nextLines = 0;
+	  for (var nr = 0; nr < game.next.figureInfo.rotations.length; nr++)
+	  {
+	    var nfi = game.next.figureInfo.rotations[nr];
+		for (var nx = 0; nx <= 10 - nfi.width; nx++)
 		{
-		  maxLineWorkBlocks = lineWorkBlocks;
-		  if (10 - filled < emptyCells)
-		    emptyCells = 10 - filled;
+		  var ndiff = getFigureMaxDiff(nfi, [nx, 0]);
+		  var currNextLines = 0;
+		  for (var ny = 0; ny < nfi.height; ny++)
+		  {
+		    var nextFilled = 0;
+		    for (var lnx = 0; lnx < 10; lnx++)
+		      if (game.gameZone[lnx][ndiff + ny] != null)
+		        nextFilled++;
+		    for (var nk = 0; nk < 4; nk++)
+              if (nfi.coords[nk][1] == ny)
+		        nextFilled++;
+		    if (nextFilled == 10)
+			  currNextLines++;
+		  }
+		  if (currNextLines > nextLines)
+		    nextLines = currNextLines;
 		}
+	  }
+	  // Возвращаем исходное состояние игрового поля
+      for (var t = 0; t < 4; t++)
+	  {
+	    var coords = fi.coords[t];
+		if (game.gameZone[coords[0] + i][coords[1] + diff] == 1)
+		  game.gameZone[coords[0] + i][coords[1] + diff] = null;
 	  }
 	  var unwanted = false;
 	  for (var u = 0; u < fi.unwanted.length; u++)
@@ -781,8 +813,9 @@ function defineAutoTarget()
 	    bottomHoles : countHoles(fi.bottomChecks, i, diff),
 		sideHoles : countHoles(fi.sideChecks, i, diff),
 	    lines : lines,
+	    nextLines : nextLines,
+	    totalLines : lines + nextLines,
 		workBlocks : workBlocks,
-	    emptyCells : emptyCells,
 		unwanted : unwanted
       };
 	  if (checkBestTarget(best, current, deepBottomCount))
@@ -797,6 +830,8 @@ function defineAutoTarget()
 }
 function checkBestTarget(best, current, deepBottomCount)
 {
+  if (best.totalLines != current.totalLines)
+    return current.totalLines > best.totalLines;
   if (best.lines != current.lines)
     return current.lines > best.lines;
   
@@ -812,9 +847,6 @@ function checkBestTarget(best, current, deepBottomCount)
       return current.sideHoles < best.sideHoles;
 	return current.fromEdge < best.fromEdge;
   }
-  
-  if ((current.emptyCells < 3) && (best.emptyCells != current.emptyCells))
-    return current.emptyCells < best.emptyCells;
   
   if ((best.bottomHoles != current.bottomHoles) && (best.diff - current.diff < 2) && (current.diff - best.diff < 2) && (deepBottomCount < 2))
     return current.bottomHoles < best.bottomHoles;
