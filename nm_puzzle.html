@@ -153,44 +153,10 @@ function onDivClick(event)
 function mix()
 {
   var info = $("cell1").data.info;
-  var cellArr = new Array();
-  for (var i = 1; i <= info.sizex; i++)
-    cellArr[i] = new Array();
-  cellArr[info.emptyx][info.emptyy] = null;
-  for (var i = 1; i < info.sizex * info.sizey; i++)
-  {
-    var cell = $("cell" + i);
-    var data = cell.data;
-	cellArr[data.x][data.y] = cell;
-  }
+  var cellArr = getCellAray(info);
   // перемешивание
-  var newX = info.emptyx, newY = info.emptyy;
   for (var i = 0; i < info.total * 100; i++)
-  {
-    var dir = getRandomInt(0, 1); // направление: 0 - по горизонтали, 1 - по вертикали
-    if (dir == 0)
-    {
-	  if (info.emptyx == 1)
-	    newX = info.emptyx + 1;
-      else if (info.emptyx == info.sizex)
-	    newX = info.emptyx - 1;
-	  else
-	    newX = (getRandomInt(0, 1) == 0) ? (info.emptyx - 1) : (info.emptyx + 1);
-    }
-    else
-    {
-	  if (info.emptyy == 1)
-	    newY = info.emptyy + 1;
-	  else if (info.emptyy == info.sizey)
-	    newY = info.emptyy - 1;
-	  else
-	    newY = (getRandomInt(0, 1) == 0) ? (info.emptyy - 1) : (info.emptyy + 1);
-    }
-    cellArr[info.emptyx][info.emptyy] = cellArr[newX][newY];
-    cellArr[newX][newY] = null;
-    info.emptyx = newX;
-    info.emptyy = newY;
-  }
+    randomMove(info, cellArr, false);
   // расстановка новых координат
   var matched = 0;
   for (var x = 1; x <= info.sizex; x++)
@@ -210,10 +176,77 @@ function mix()
   info.matched = matched;
   updateInfo(info);
 }
+function getCellAray(info)
+{
+  var cellArr = new Array();
+  for (var i = 1; i <= info.sizex; i++)
+    cellArr[i] = new Array();
+  cellArr[info.emptyx][info.emptyy] = null;
+  for (var i = 1; i < info.sizex * info.sizey; i++)
+  {
+    var cell = $("cell" + i);
+    var data = cell.data;
+	cellArr[data.x][data.y] = cell;
+  }
+  return cellArr;
+}
+function randomMove(info, cellArr, moveElement)
+{
+  var newX = info.emptyx, newY = info.emptyy;
+  var dir = getRandomInt(0, 1); // направление: 0 - по горизонтали, 1 - по вертикали
+  if (dir == 0)
+  {
+	if (info.emptyx == 1)
+	  newX = info.emptyx + 1;
+    else if (info.emptyx == info.sizex)
+	  newX = info.emptyx - 1;
+	else
+	  newX = (getRandomInt(0, 1) == 0) ? (info.emptyx - 1) : (info.emptyx + 1);
+  }
+  else
+  {
+	if (info.emptyy == 1)
+	  newY = info.emptyy + 1;
+	else if (info.emptyy == info.sizey)
+	  newY = info.emptyy - 1;
+	else
+	  newY = (getRandomInt(0, 1) == 0) ? (info.emptyy - 1) : (info.emptyy + 1);
+  }
+  var cell = cellArr[newX][newY];
+  cellArr[info.emptyx][info.emptyy] = cell;
+  cellArr[newX][newY] = null;
+  if (moveElement)
+  {
+	var data = cell.data;
+	data.x = info.emptyx;
+	data.y = info.emptyy;
+	setCellCoords(cell);
+    info.step = 0;
+    updateInfo(info);
+  }
+  info.emptyx = newX;
+  info.emptyy = newY;
+}
 function updateInfo(info)
 {
   var infoElem = $("info");
   infoElem.innerHTML = "Ход: " + info.step + "; Совпадений: " + info.matched + " / " + info.total + " (" + Math.round(info.matched * 100 / info.total) + "%)";
+}
+function onMoveItClick(event)
+{
+  var info = $("cell1").data.info;
+  if (!$("moveit").checked)
+  {
+	if (info.moveitCallback != null)
+	  clearTimeout(info.moveitCallback);
+    info.moveitCallback = null;
+	return;
+  }
+  var cellArr = getCellAray(info);
+  // случайное перемещение
+  var cell = randomMove(info, cellArr, true);
+  
+  info.moveitCallback = setTimeout(onMoveItClick, 500);
 }
 window.onload = generateGame;
 </script>
@@ -230,5 +263,6 @@ window.onload = generateGame;
 </div><br/>
 <span id="info" style="color:green;font-weight:bold;">0</span><br/>
 <button onclick="mix()"">Перемешать</button><br/>
+<input type="checkbox" id="moveit" onclick="onMoveItClick(event)"><label for="moveit">Движуха</label>
 </body>
 </html>
