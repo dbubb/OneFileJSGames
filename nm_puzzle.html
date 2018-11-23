@@ -212,6 +212,10 @@ function randomMove(info, cellArr, moveElement)
 	else
 	  newY = (getRandomInt(0, 1) == 0) ? (info.emptyy - 1) : (info.emptyy + 1);
   }
+  move(info, cellArr, newX, newY, false, moveElement)
+}
+function move(info, cellArr, newX, newY, incStep, moveElement)
+{
   var cell = cellArr[newX][newY];
   cellArr[info.emptyx][info.emptyy] = cell;
   cellArr[newX][newY] = null;
@@ -221,32 +225,117 @@ function randomMove(info, cellArr, moveElement)
 	data.x = info.emptyx;
 	data.y = info.emptyy;
 	setCellCoords(cell);
-    info.step = 0;
+    info.step = incStep ? (info.step + 1) : 0;
     updateInfo(info);
   }
   info.emptyx = newX;
   info.emptyy = newY;
+}
+function solveMove(info, cellArr)
+{
+  var targetCell = null;
+  for (var i = 1; i < info.sizex * info.sizey; i++)
+  {
+    var cell = $("cell" + i);
+    var data = cell.data;
+    if ((data.mx == data.x) && ((data.my == data.y)))
+	  continue;
+	targetCell = cell;
+	break;
+  }
+  if (targetCell == null) // уже все решено
+  {
+    $("movingStop").checked = true;
+	onMovingClick(null);
+	return;
+  }
+  
+  var data = targetCell.data;
+  var dest = Math.abs(info.emptyx - data.x) + Math.abs(info.emptyy - data.y);
+  if (dest > 1) // пустая клетка не рядом с той, которую надо двигать
+  {
+    if (data.y >= info.emptyy)
+	{
+      if (data.x > info.emptyx)
+	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+      else if (data.x < info.emptyx)
+	    move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+      else
+	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	}
+	else
+	{
+      var to_x = data.x;
+	  if (to_x == 1)
+	    to_x++;
+	  else if (to_x == info.sizex)
+	    to_x--;
+	  else if (data.mx < data.x)
+	    to_x--;
+	  else
+	    to_x++;
+	  
+      if (to_x > info.emptyx)
+	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+      else if (to_x < info.emptyx)
+	    move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+      else
+	    move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
+	}
+  }
+  else // пустая клетка рядом
+  {
+    if (data.y > info.emptyy) // пустая клетка сверху
+	  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+    else if (data.y < info.emptyy) // пустая клетка снизу
+	{
+	  if (((info.emptyx !== 1) && (data.mx < data.x)) || (info.emptyx == info.sizex))
+	    move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+	  else
+	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+	}
+    else if (data.x > info.emptyx) // пустая клетка слева
+	{
+	  if (data.mx < data.x) // надо сдвигаться влево
+	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+	  else if ((data.my < data.y -1) || ((info.emptyx >= data.mx) && (data.my < data.y))) // сверху есть место
+	    move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
+	  else
+	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	}
+    else // пустая клетка справа
+	{
+	  if (data.mx > data.x) // надо сдвигаться вправо
+	    move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+	  else if (data.my < data.y) // сверху есть место
+	    move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
+	  else
+	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	}
+  }
 }
 function updateInfo(info)
 {
   var infoElem = $("info");
   infoElem.innerHTML = "Ход: " + info.step + "; Совпадений: " + info.matched + " / " + info.total + " (" + Math.round(info.matched * 100 / info.total) + "%)";
 }
-function onMoveItClick(event)
+function onMovingClick(event)
 {
   var info = $("cell1").data.info;
-  if (!$("moveit").checked)
-  {
-	if (info.moveitCallback != null)
-	  clearTimeout(info.moveitCallback);
-    info.moveitCallback = null;
-	return;
-  }
-  var cellArr = getCellAray(info);
-  // случайное перемещение
-  var cell = randomMove(info, cellArr, true);
+  if (info.movingCallback != null)
+	clearTimeout(info.movingCallback);
+  info.movingCallback = null;
   
-  info.moveitCallback = setTimeout(onMoveItClick, 500);
+  if ($("movingStop").checked)
+	return;
+  
+  var cellArr = getCellAray(info);
+  if ($("movingRandom").checked) // случайное перемещение
+    randomMove(info, cellArr, true);
+  else if ($("movingSolve").checked)
+    solveMove(info, cellArr); // авторешение
+  
+  info.movingCallback = setTimeout(onMovingClick, 500);
 }
 window.onload = generateGame;
 </script>
@@ -263,6 +352,8 @@ window.onload = generateGame;
 </div><br/>
 <span id="info" style="color:green;font-weight:bold;">0</span><br/>
 <button onclick="mix()"">Перемешать</button><br/>
-<input type="checkbox" id="moveit" onclick="onMoveItClick(event)"><label for="moveit">Движуха</label>
+<input name="moving" type="radio"  onclick="onMovingClick(event)" value="stop" id="movingStop" checked> Спокойствие, только спокойствие!<br/>
+<input name="moving" type="radio"  onclick="onMovingClick(event)" value="random" id="movingRandom"> Случайная движуха<br/>
+<input name="moving" type="radio"  onclick="onMovingClick(event)" value="solve" id="movingSolve"> Авторешение<br/>
 </body>
 </html>
