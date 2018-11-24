@@ -259,7 +259,12 @@ function solveMove(info, cellArr)
       if (data.x > info.emptyx)
 	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
       else if (data.x < info.emptyx)
-	    move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+	  {
+	    if ((data.my == info.emptyy) && (data.mx == info.emptyx)) // пустая клета на месте цели - нельзя двигаться влево, испортим собранный кусок, надо сдвинуться вниз
+	      move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+		else
+	      move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+	  }
       else
 	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
 	}
