@@ -258,10 +258,23 @@ function solveMove(info, cellArr)
     var nexti = i + 1;
     var nextCell = $("cell" + nexti);
 	var nextData = nextCell.data;
-	if ((nextData.x == data.mx) && (nextData.y == data.my)) // следующая плитка уже стоит в нужной позиции - двигаем предыдущую под неё
+	if ((nextData.x == data.mx + 1) && (nextData.y == data.my) && (data.x == data.mx) && (data.y == data.my + 1) && (info.emptyx == data.mx) && (info.emptyy == data.my)) // последний шаг колоночного маневра
+	  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	else if ((nextData.x == data.mx) && (nextData.y == data.my)) // следующая плитка уже стоит в нужной позиции - двигаем предыдущую под неё
 	{
-	  // TODO проверить что и предпоследняя уже в нужной позиции
-	  solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my + 1);
+	  if ((data.x == data.mx) && (data.y == data.my + 1)) // обе плитки в нужных позициях - двигаем пустую клетку
+	  {
+	    if ((info.emptyx == data.mx + 1) && (info.emptyy == data.my))
+		  move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+		else if ((info.emptyx == data.mx + 1) && (info.emptyy > data.my))
+		  move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
+		else if ((info.emptyx < data.mx + 1) && (info.emptyy > data.my + 1))
+		  move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+		else if ((info.emptyx < data.mx + 1) && (info.emptyy <= data.my + 1))
+		  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	  }
+	  else
+	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my + 1);
 	}
 	else
 	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my);
