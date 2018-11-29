@@ -293,7 +293,7 @@ function solveMoveToTarget(info, cellArr, cellx, celly, tox, toy)
 	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
       else if (cellx < info.emptyx)
 	  {
-	    if ((toy == info.emptyy) && (tox == info.emptyx)) // пустая клета на месте цели - нельзя двигаться влево, испортим собранный кусок, надо сдвинуться вниз
+	    if ((toy == info.emptyy) && (tox == info.emptyx) || (toy > info.emptyy)) // пустая клета на месте цели (или выше цели) - нельзя двигаться влево, испортим собранный кусок, надо сдвинуться вниз
 	      move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
 		else
 	      move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
