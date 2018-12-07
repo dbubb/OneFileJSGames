@@ -238,8 +238,19 @@ function solveMove(info, cellArr)
   {
     var cell = $("cell" + i);
     var data = cell.data;
-    if ((data.mx == data.x) && ((data.my == data.y)))
-	  continue;
+	if ((data.my == info.sizey - 1) && (data.mx < info.sizex)) // предпоследнюю строчку (кроме последней ячейки) обрабатываем по особым правилам
+	{
+      var nexti = i + info.sizex;
+      var nextCell = $("cell" + nexti);
+	  var nextData = nextCell.data;
+      if ((data.mx == data.x) && (data.my == data.y) && (nextData.mx == nextData.x) && (nextData.my == nextData.y)) // на своем месте должна стоять не только текущая ячейка, но и та, что под ней
+	    continue;
+	}
+	else
+	{
+      if ((data.mx == data.x) && (data.my == data.y))
+	    continue;
+	}
 	targetCell = cell;
 	break;
   }
@@ -251,7 +262,33 @@ function solveMove(info, cellArr)
   }
   
   var data = targetCell.data;
-  if (data.mx == info.sizex) // Похоже клетка в предпоследней колонке случайно оказалась на своем месте
+  if ((data.my == info.sizey - 1) && (data.mx == info.sizex) && (data.x == data.mx) && (data.y == data.my + 1) && (info.emptyx == data.mx) && (info.emptyy == data.my)) // последний ход
+    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+  else if (data.my == info.sizey - 1) // предпоследнюю строчку обрабатываем по особым правилам
+  {
+    var nexti = i + info.sizex;
+    var nextCell = $("cell" + nexti);
+	var nextData = nextCell.data;
+	if ((nextData.x == nextData.mx) && (nextData.y == nextData.my) && (data.x == data.mx + 1) && (data.y == data.my) && (info.emptyx == data.mx) && (info.emptyy == data.my)) // последний шаг маневра
+	  move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+	else if ((nextData.x == data.mx) && (nextData.y == data.my)) // следующая плитка уже стоит в нужной позиции - двигаем предыдущую в позицию рядом
+	{
+	  if ((data.x == data.mx + 1) && (data.y == data.my)) // обе плитки в нужных позициях - двигаем пустую клетку
+	  {
+	    if (info.emptyy < info.sizey)
+		  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+		else if (info.emptyx > data.mx)
+		  move(info, cellArr, info.emptyx - 1, info.emptyy, true, true);
+		else
+		  move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
+	  }
+	  else
+	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx + 1, data.my, data.my);
+	}
+    else
+	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my, data.my);
+  }
+  else if (data.mx == info.sizex) // Похоже клетка в предпоследней колонке случайно оказалась на своем месте
     solveMoveToTarget(info, cellArr, data.x, data.y, data.mx - 1, data.my, data.my);
   else if (data.mx == info.sizex - 1) // Предпоследняя колонка - особый случай
   {
