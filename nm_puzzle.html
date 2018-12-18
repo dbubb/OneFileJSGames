@@ -269,7 +269,12 @@ function solveMove(info, cellArr)
     var nexti = i + info.sizex;
     var nextCell = $("cell" + nexti);
 	var nextData = nextCell.data;
-	if ((nextData.x == nextData.mx) && (nextData.y == nextData.my) && (data.x == data.mx + 1) && (data.y == data.my) && (info.emptyx == data.mx) && (info.emptyy == data.my)) // последний шаг маневра
+	// случай когда текущая и следующая плитка поменяны местами - надо обрабатыать по-особому
+	if (((nextData.x == nextData.mx) && (nextData.y == nextData.my - 1) && (data.x == data.mx) && (data.y == data.my + 1)) ||
+         ((nextData.x == nextData.mx) && (nextData.y == nextData.my) && (data.x == data.mx + 1) && (data.y == data.my + 1)) ||
+         ((nextData.x == nextData.mx) && (nextData.y == nextData.my - 1) && (data.x == data.mx + 1) && (data.y == data.my + 1) && (info.emptyx == data.mx) && (info.emptyy == data.my + 1)))
+	  solveMoveToTarget(info, cellArr, data.x, data.y, data.mx + 2, data.my + 1, data.my, true);
+	else if ((nextData.x == nextData.mx) && (nextData.y == nextData.my) && (data.x == data.mx + 1) && (data.y == data.my) && (info.emptyx == data.mx) && (info.emptyy == data.my)) // последний шаг маневра
 	  move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
 	else if ((nextData.x == data.mx) && (nextData.y == data.my)) // следующая плитка уже стоит в нужной позиции - двигаем предыдущую в позицию рядом
 	{
@@ -283,13 +288,13 @@ function solveMove(info, cellArr)
 		  move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
 	  }
 	  else
-	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx + 1, data.my, data.my);
+	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx + 1, data.my, data.my, false);
 	}
     else
-	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my, data.my);
+	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my, data.my, false);
   }
   else if (data.mx == info.sizex) // Похоже клетка в предпоследней колонке случайно оказалась на своем месте
-    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx - 1, data.my, data.my);
+    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx - 1, data.my, data.my, false);
   else if (data.mx == info.sizex - 1) // Предпоследняя колонка - особый случай
   {
     var nexti = i + 1;
@@ -311,15 +316,15 @@ function solveMove(info, cellArr)
 		  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
 	  }
 	  else
-	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my + 1, data.my);
+	    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my + 1, data.my, false);
 	}
 	else
-	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my, data.my);
+	  solveMoveToTarget(info, cellArr, nextData.x, nextData.y, data.mx, data.my, data.my, false);
   }
   else
-    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my, data.my);
+    solveMoveToTarget(info, cellArr, data.x, data.y, data.mx, data.my, data.my, false);
 }
-function solveMoveToTarget(info, cellArr, cellx, celly, tox, toy, lastLine)
+function solveMoveToTarget(info, cellArr, cellx, celly, tox, toy, lastLine, canMoveUp)
 {
   var dest = Math.abs(info.emptyx - cellx) + Math.abs(info.emptyy - celly);
   if (dest > 1) // пустая клетка не рядом с той, которую надо двигать
@@ -361,7 +366,12 @@ function solveMoveToTarget(info, cellArr, cellx, celly, tox, toy, lastLine)
   else // пустая клетка рядом
   {
     if (celly > info.emptyy) // пустая клетка сверху
-	  move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	{
+	  if ((toy > info.emptyy) && (tox > info.emptyx))
+	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
+	  else
+	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
+	}
     else if (celly < info.emptyy) // пустая клетка снизу
 	{
 	  if (((info.emptyx !== 1) && (tox < cellx)) || (info.emptyx == info.sizex))
@@ -373,7 +383,7 @@ function solveMoveToTarget(info, cellArr, cellx, celly, tox, toy, lastLine)
 	{
 	  if (tox < cellx) // надо сдвигаться влево
 	    move(info, cellArr, info.emptyx + 1, info.emptyy, true, true);
-	  else if ((lastLine < celly -1) || ((info.emptyx >= tox) && (toy < celly))) // сверху есть место
+	  else if ((lastLine < celly -1) || canMoveUp || ((info.emptyx >= tox) && (toy < celly))) // сверху есть место
 	    move(info, cellArr, info.emptyx, info.emptyy - 1, true, true);
 	  else
 	    move(info, cellArr, info.emptyx, info.emptyy + 1, true, true);
