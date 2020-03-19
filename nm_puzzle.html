@@ -432,11 +432,11 @@ window.onload = generateGame;
 <span> * </span>
 <select id="sizey"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
 <input type="checkbox" id="rand" checked><label for="rand">Случайный порядок</label>
-<button onclick="generateGame()"">Сгенерировать</button><br/><br/>
+<button onclick="generateGame()">Сгенерировать</button><br/><br/>
 <div id="divGame" class="divGame" onclick="onDivClick(event)">
 </div><br/>
 <span id="info" style="color:green;font-weight:bold;">0</span><br/>
-<button onclick="mix()"">Перемешать</button><br/>
+<button onclick="mix()">Перемешать</button><br/>
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="stop" id="movingStop" checked> Спокойствие, только спокойствие!<br/>
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="random" id="movingRandom"> Случайная движуха<br/>
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="solve" id="movingSolve"> Авторешение<br/>
