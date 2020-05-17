@@ -256,8 +256,15 @@ function solveMove(info, cellArr)
   }
   if (targetCell == null) // уже все решено
   {
-    $("movingStop").checked = true;
-	onMovingClick(null);
+    if ($("movingSolveForever").checked) // режим вечного авторешения - перемешиваем и по новой
+	{
+	  mix();
+	}
+	else
+	{
+      $("movingStop").checked = true;
+	  onMovingClick(null);
+	}
 	return;
   }
   
@@ -417,7 +424,7 @@ function onMovingClick(event)
   var cellArr = getCellAray(info);
   if ($("movingRandom").checked) // случайное перемещение
     randomMove(info, cellArr, true);
-  else if ($("movingSolve").checked)
+  else if ($("movingSolve").checked || $("movingSolveForever").checked)
     solveMove(info, cellArr); // авторешение
   
   info.movingCallback = setTimeout(onMovingClick, 500);
@@ -440,5 +447,6 @@ window.onload = generateGame;
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="stop" id="movingStop" checked> Спокойствие, только спокойствие!<br/>
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="random" id="movingRandom"> Случайная движуха<br/>
 <input name="moving" type="radio"  onclick="onMovingClick(event)" value="solve" id="movingSolve"> Авторешение<br/>
+<input name="moving" type="radio"  onclick="onMovingClick(event)" value="solveForever" id="movingSolveForever"> Вечное Авторешение<br/>
 </body>
 </html>
